@@ -22,3 +22,4 @@
 - [JSSDK服务端支持](docs/jssdk.md)
 - [素材管理](docs/materialManager.md)
 - [摇一摇周边](docs/shake.md)
+- [卡劵管理](docs/card.md)

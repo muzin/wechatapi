@@ -1,6 +1,9 @@
 package com.fanglesoft.util;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 import org.apache.http.HttpEntity;
@@ -8,10 +11,15 @@ import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
@@ -63,6 +71,121 @@ public class HttpUtils {
                 EntityUtils.consume(entity); //Consume response content
             }
             System.out.println("请求地址: " + httpGet.getURI());
+            System.out.println("响应状态: " + response.getStatusLine());
+            System.out.println("响应长度: " + responseLength);
+            System.out.println("响应内容: " + responseContent);
+        }catch(ClientProtocolException e){
+            System.out.println("该异常通常是协议错误导致,比如构造HttpGet对象时传入的协议不对(将'http'写成'htp')或者服务器端返回的内容不符合HTTP协议要求等,堆栈信息如下");
+            e.printStackTrace();
+        }catch(ParseException e){
+            e.printStackTrace();
+        }catch(IOException e){
+            System.out.println("该异常通常是网络原因引起的,如HTTP服务器未启动等,堆栈信息如下");
+            e.printStackTrace();
+        }finally{
+            httpClient.getConnectionManager().shutdown(); //关闭连接,释放资源
+        }
+        return responseContent;
+    }
+
+
+    /**
+     * 发送HTTP_GET请求
+     * 该方法会自动关闭连接,释放资源
+     * @param url    请求地址(含参数)
+     * @return 远程主机响应正文
+     */
+    public static String sendPostJsonRequest(String url){
+        return sendPostJsonRequest(url, "");
+    }
+
+    public static String sendPostJsonRequest(String url, String param){
+        long responseLength = 0;       //响应长度
+        String responseContent = null; //响应内容
+        HttpClient httpClient = new DefaultHttpClient(); //创建默认的httpClient实例
+        HttpPost httpPost = new HttpPost(url);           //创建org.apache.http.client.methods.HttpGet
+        try{
+
+            httpPost.setHeader("content-type", "application/json;charset=utf-8");
+
+            StringEntity strEntity = new StringEntity(param.toString(), Charset.forName("UTF-8"));
+            httpPost.setEntity(strEntity);
+
+            HttpResponse response = httpClient.execute(httpPost); //执行GET请求
+            HttpEntity entity = response.getEntity();            //获取响应实体
+            if(null != entity){
+                responseLength = entity.getContentLength();
+                responseContent = EntityUtils.toString(entity, "UTF-8");
+                EntityUtils.consume(entity); //Consume response content
+            }
+            System.out.println("请求地址: " + httpPost.getURI());
+            System.out.println("响应状态: " + response.getStatusLine());
+            System.out.println("响应长度: " + responseLength);
+            System.out.println("响应内容: " + responseContent);
+        }catch(ClientProtocolException e){
+            System.out.println("该异常通常是协议错误导致,比如构造HttpGet对象时传入的协议不对(将'http'写成'htp')或者服务器端返回的内容不符合HTTP协议要求等,堆栈信息如下");
+            e.printStackTrace();
+        }catch(ParseException e){
+            e.printStackTrace();
+        }catch(IOException e){
+            System.out.println("该异常通常是网络原因引起的,如HTTP服务器未启动等,堆栈信息如下");
+            e.printStackTrace();
+        }finally{
+            httpClient.getConnectionManager().shutdown(); //关闭连接,释放资源
+        }
+        return responseContent;
+    }
+
+
+
+
+    public static String sendPostFormDataRequest(String url, Map<String, Object> param){
+        long responseLength = 0;       //响应长度
+        String responseContent = null; //响应内容
+        HttpClient httpClient = new DefaultHttpClient(); //创建默认的httpClient实例
+        HttpPost httpPost = new HttpPost(url);           //创建org.apache.http.client.methods.HttpGet
+        try{
+
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.setCharset(java.nio.charset.Charset.forName("UTF-8"));
+            builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+
+            Set<String> formDataKeys = param.keySet();
+
+            for (String key : formDataKeys) {
+
+                Object val = param.get(key);
+
+                if(val instanceof String){
+                    // 解决中文乱码
+                    ContentType contentType = ContentType.create(HTTP.PLAIN_TEXT_TYPE, HTTP.UTF_8);
+                    builder.addTextBody(key, val.toString(), contentType);
+                }
+
+                if(val instanceof File){
+                    File valFile = (File) val;
+                    FileInputStream fis = new FileInputStream(valFile);
+                    String fileName = valFile.getName();
+                    builder.addBinaryBody(
+                            key,
+                            fis,
+                            ContentType.MULTIPART_FORM_DATA,
+                            fileName);// 文件流
+                }
+
+            }
+
+            HttpEntity formDataEntity = builder.build();
+            httpPost.setEntity(formDataEntity);
+
+            HttpResponse response = httpClient.execute(httpPost); //执行GET请求
+            HttpEntity entity = response.getEntity();            //获取响应实体
+            if(null != entity){
+                responseLength = entity.getContentLength();
+                responseContent = EntityUtils.toString(entity, "UTF-8");
+                EntityUtils.consume(entity); //Consume response content
+            }
+            System.out.println("请求地址: " + httpPost.getURI());
             System.out.println("响应状态: " + response.getStatusLine());
             System.out.println("响应长度: " + responseLength);
             System.out.println("响应内容: " + responseContent);

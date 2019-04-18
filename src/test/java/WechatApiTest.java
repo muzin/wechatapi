@@ -22,8 +22,8 @@ public class WechatApiTest {
         map.put("dw","");
 
         String ret = wechatAPI.raw(map);
-
         System.out.println(ret);
+        Assert.assertEquals(ret, "aw=&d=&dw=&qw=&yw=&zw=");
 
     }
 

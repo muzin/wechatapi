@@ -6,11 +6,9 @@ import com.fanglesoft.resolver.TokenStorageResolver;
 import com.fanglesoft.util.CryptoUtils;
 import com.fanglesoft.util.HttpUtils;
 import com.fanglesoft.util.MapUtils;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -43,6 +41,8 @@ public class WechatAPI {
     private WechatAPIOptions options;
 
     private JsonParser jsonParser;
+
+    private Gson gson;
 
 
     /**
@@ -484,7 +484,8 @@ public class WechatAPI {
      * ```
      */
     public List<String> getIp () {
-        AccessToken accessToken = this.ensureAccessToken();
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // https://api.weixin.qq.com/cgi-bin/getcallbackip?access_token=ACCESS_TOKEN
         String url = this.PREFIX + "getcallbackip?access_token=" + accessToken;
 
@@ -521,12 +522,11 @@ public class WechatAPI {
      * ```
      * Examples:
      * ```
-     * var result = await api.getRecords(opts);
+     * JsonArray result = await api.getRecords(opts);
      * ```
      * Result:
      * ```
-     * {
-     *  "recordlist": [
+     * [
      *    {
      *      "worker": " test1",
      *      "openid": "oDF3iY9WMaswOPWjCIp_f3Bnpljk",
@@ -542,263 +542,706 @@ public class WechatAPI {
      *      "text": " 你好，有什么事情？ "
      *    },
      *  ]
-     * }
      * ```
      * @param {Object} opts 查询条件
      */
-    public void getRecords (Map<String, Object> opts) {
-        AccessToken accessToken = this.ensureAccessToken();
+    public JsonArray getRecords (Map<String, Object> opts) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // https://api.weixin.qq.com/customservice/msgrecord/getrecord?access_token=ACCESS_TOKEN
         String url = this.CUSTOM_SERVICE_PREFIX + "msgrecord/getrecord?access_token=" + accessToken;
-        return this.request(url, postJSON(opts));
+        String data = gson.toJson(opts);
+        String respStr = HttpUtils.sendPostJsonRequest(url, data);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        JsonArray recordlist = resp.get("recordlist").getAsJsonArray();
+        return recordlist;
     };
 
-/**
- * 获取客服基本信息
- * 详细请看：http://dkf.qq.com/document-3_1.html
- * Examples:
- * ```
- * var result = await api.getCustomServiceList();
- * ```
- * Result:
- * ```
- * {
- *   "kf_list": [
- *     {
- *       "kf_account": "test1@test",
- *       "kf_nick": "ntest1",
- *       "kf_id": "1001"
- *     },
- *     {
- *       "kf_account": "test2@test",
- *       "kf_nick": "ntest2",
- *       "kf_id": "1002"
- *     },
- *     {
- *       "kf_account": "test3@test",
- *       "kf_nick": "ntest3",
- *       "kf_id": "1003"
- *     }
- *   ]
- * }
- * ```
- */
-    exports.getCustomServiceList = async function () {
-  const { accessToken } = await this.ensureAccessToken();
+    /**
+     * 获取客服基本信息
+     * 详细请看：http://dkf.qq.com/document-3_1.html
+     * Examples:
+     * ```
+     * JsonArray result = api.getCustomServiceList();
+     * ```
+     * Result:
+     * ```
+     * [
+     *     {
+     *       "kf_account": "test1@test",
+     *       "kf_nick": "ntest1",
+     *       "kf_id": "1001"
+     *     },
+     *     {
+     *       "kf_account": "test2@test",
+     *       "kf_nick": "ntest2",
+     *       "kf_id": "1002"
+     *     },
+     *     {
+     *       "kf_account": "test3@test",
+     *       "kf_nick": "ntest3",
+     *       "kf_id": "1003"
+     *     }
+     *   ]
+     * }
+     * ```
+     */
+    public JsonArray getCustomServiceList () {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // https://api.weixin.qq.com/cgi-bin/customservice/getkflist?access_token= ACCESS_TOKEN
-        var url = this.prefix + 'customservice/getkflist?access_token=' + accessToken;
-        return this.request(url, {dataType: 'json'});
+        String url = this.PREFIX + "customservice/getkflist?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        JsonArray kf_list = resp.get("kf_list").getAsJsonArray();
+        return kf_list;
     };
 
-/**
- * 获取在线客服接待信息
- * 详细请看：http://dkf.qq.com/document-3_2.html * Examples:
- * ```
- * var result = await api.getOnlineCustomServiceList();
- * ```
- * Result:
- * ```
- * {
- *   "kf_online_list": [
- *     {
- *       "kf_account": "test1@test",
- *       "status": 1,
- *       "kf_id": "1001",
- *       "auto_accept": 0,
- *       "accepted_case": 1
- *     },
- *     {
- *       "kf_account": "test2@test",
- *       "status": 1,
- *       "kf_id": "1002",
- *       "auto_accept": 0,
- *       "accepted_case": 2
- *     }
- *   ]
- * }
- * ```
- */
-    exports.getOnlineCustomServiceList = async function () {
-  const { accessToken } = await this.ensureAccessToken();
-        // https://api.weixin.qq.com/cgi-bin/customservice/getonlinekflist?access_token= ACCESS_TOKEN
-        var url = this.prefix + 'customservice/getonlinekflist?access_token=' + accessToken;
-        return this.request(url, {dataType: 'json'});
+    /**
+     * 获取在线客服接待信息
+     * 详细请看：http://dkf.qq.com/document-3_2.html * Examples:
+     * ```
+     * JsonArray list = api.getOnlineCustomServiceList();
+     * ```
+     * Result:
+     * ```
+     * {
+     *   "kf_online_list": [
+     *     {
+     *       "kf_account": "test1@test",
+     *       "status": 1,
+     *       "kf_id": "1001",
+     *       "auto_accept": 0,
+     *       "accepted_case": 1
+     *     },
+     *     {
+     *       "kf_account": "test2@test",
+     *       "status": 1,
+     *       "kf_id": "1002",
+     *       "auto_accept": 0,
+     *       "accepted_case": 2
+     *     }
+     *   ]
+     * }
+     * ```
+     */
+    public JsonArray getOnlineCustomServiceList() {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+        // https://api.weixin.qq.com/cgi-bin/customservice/getkflist?access_token= ACCESS_TOKEN
+        String url = this.PREFIX + "customservice/getonlinekflist?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        JsonArray kf_online_list = resp.get("kf_online_list").getAsJsonArray();
+        return kf_online_list;
     };
 
-/**
- * 添加客服账号
- * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN * Examples:
- * ```
- * var result = await api.addKfAccount('test@test', 'nickname', 'password');
- * ```
- * Result:
- * ```
- * {
- *  "errcode" : 0,
- *  "errmsg" : "ok",
- * }
- * ```
- * @param {String} account 账号名字，格式为：前缀@公共号名字
- * @param {String} nick 昵称
- */
-    exports.addKfAccount = async function (account, nick) {
-  const { accessToken } = await this.ensureAccessToken();
+    /**
+     * 添加客服账号
+     * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN * Examples:
+     * ```
+     * boolean result = api.addKfAccount('test@test', 'nickname', 'password');
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode" : 0,
+     *  "errmsg" : "ok",
+     * }
+     * ```
+     * @param {String} account 账号名字，格式为：前缀@公共号名字
+     * @param {String} nick 昵称
+     */
+    public boolean addKfAccount (String account, String nick, String password) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // https://api.weixin.qq.com/customservice/kfaccount/add?access_token=ACCESS_TOKEN
-        var prefix = 'https://api.weixin.qq.com/';
-        var url = prefix + 'customservice/kfaccount/add?access_token=' + accessToken;
-        var data = {
-                'kf_account': account,
-                'nickname': nick
-  };
+        String prefix = "https://api.weixin.qq.com/";
+        String url = prefix + "customservice/kfaccount/add?access_token=" + accessToken;
 
-        return this.request(url, postJSON(data));
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("kf_account", account);
+        data.put("nickname", nick);
+        data.put("password", password);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        Integer errCode = resp.get("errcode").getAsInt();
+
+        if(0 == errCode){
+            return true;
+        }else{
+            return false;
+        }
+
     };
 
-/**
- * 邀请绑定客服帐号
- * 详细请看：https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN
- * Examples:
- * ```
- * var result = await api.inviteworker('test@test', 'invite_wx');
- * ```
- * Result:
- * ```
- * {
- *  "errcode" : 0,
- *  "errmsg" : "ok",
- * }
- * ```
- * @param {String} account 账号名字，格式为：前缀@公共号名字
- * @param {String} wx 邀请绑定的个人微信账号
- */
-    exports.inviteworker = async function (account, wx) {
-  const { accessToken } = await this.ensureAccessToken();
+    /**
+     * 邀请绑定客服帐号
+     * 详细请看：https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * boolean result = api.inviteworker('test@test', 'invite_wx');
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode" : 0,
+     *  "errmsg" : "ok",
+     * }
+     * ```
+     * @param {String} account 账号名字，格式为：前缀@公共号名字
+     * @param {String} wx 邀请绑定的个人微信账号
+     */
+    public boolean inviteworker (String account, String wx) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // https://api.weixin.qq.com/customservice/kfaccount/inviteworker?access_token=ACCESS_TOKEN
-        var prefix = 'https://api.weixin.qq.com/';
-        var url = prefix + 'customservice/kfaccount/inviteworker?access_token=' + accessToken;
-        var data = {
-                'kf_account': account,
-                'invite_wx': wx
-  };
+        String prefix = "https://api.weixin.qq.com/";
+        String url = prefix + "customservice/kfaccount/inviteworker?access_token=" + accessToken;
 
-        return this.request(url, postJSON(data));
-    };
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("kf_account", account);
+        data.put("invite_wx", wx);
 
-/**
- * 设置客服账号
- * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN * Examples:
- * ```
- * api.updateKfAccount('test@test', 'nickname', 'password');
- * ```
- * Result:
- * ```
- * {
- *  "errcode" : 0,
- *  "errmsg" : "ok",
- * }
- * ```
- * @param {String} account 账号名字，格式为：前缀@公共号名字
- * @param {String} nick 昵称
- */
-    exports.updateKfAccount = async function (account, nick) {
-  const { accessToken } = await this.ensureAccessToken();
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        Integer errCode = resp.get("errcode").getAsInt();
+
+        if(0 == errCode){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 设置客服账号
+     * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN * Examples:
+     * ```
+     * boolean result = api.updateKfAccount('test@test', 'nickname', 'password');
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode" : 0,
+     *  "errmsg" : "ok",
+     * }
+     * ```
+     * @param {String} account 账号名字，格式为：前缀@公共号名字
+     * @param {String} nick 昵称
+     */
+    public boolean updateKfAccount (String account, String nick, String password) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // https://api.weixin.qq.com/customservice/kfaccount/add?access_token=ACCESS_TOKEN
-        var prefix = 'https://api.weixin.qq.com/';
-        var url = prefix + 'customservice/kfaccount/update?access_token=' + accessToken;
-        var data = {
-                'kf_account': account,
-                'nickname': nick
-  };
+        String prefix = "https://api.weixin.qq.com/";
+        String url = prefix + "customservice/kfaccount/update?access_token=" + accessToken;
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("kf_account", account);
+        data.put("nickname", nick);
+        data.put("password", password);
 
-        return this.request(url, postJSON(data));
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        Integer errCode = resp.get("errcode").getAsInt();
+
+        if(0 == errCode){
+            return true;
+        }else{
+            return false;
+        }
     };
 
-/**
- * 删除客服账号
- * 详细请看：http://mp.weixin.qq.com/wiki/9/6fff6f191ef92c126b043ada035cc935.html * Examples:
- * ```
- * api.deleteKfAccount('test@test');
- * ```
- * Result:
- * ```
- * {
- *  "errcode" : 0,
- *  "errmsg" : "ok",
- * }
- * ```
- * @param {String} account 账号名字，格式为：前缀@公共号名字
- */
-    exports.deleteKfAccount = async function (account) {
-  const { accessToken } = await this.ensureAccessToken();
-        // https://api.weixin.qq.com/customservice/kfaccount/del?access_token=ACCESS_TOKEN
-        var prefix = 'https://api.weixin.qq.com/';
-        var url = prefix + 'customservice/kfaccount/del?access_token=' + accessToken + '&kf_account=' + account;
+    /**
+     * 删除客服账号
+     * 详细请看：http://mp.weixin.qq.com/wiki/9/6fff6f191ef92c126b043ada035cc935.html * Examples:
+     * ```
+     * api.deleteKfAccount('test@test');
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode" : 0,
+     *  "errmsg" : "ok",
+     * }
+     * ```
+     * @param {String} account 账号名字，格式为：前缀@公共号名字
+     */
+     public boolean deleteKfAccount (String account) {
+         AccessToken token = this.ensureAccessToken();
+         String accessToken = token.getAccessToken();
+            // https://api.weixin.qq.com/customservice/kfaccount/del?access_token=ACCESS_TOKEN
+         String prefix = "https://api.weixin.qq.com/";
+         String url = prefix + "customservice/kfaccount/del?access_token=" + accessToken + "&kf_account=" + account;
 
-        return this.request(url, {dataType: 'json'});
-    };
+         Map<String, Object> reqOpts = new HashMap<String, Object>();
+         Map<String, String> headers = new HashMap<String, String>();
+         headers.put("content-type", "application/json");
+         reqOpts.put("headers", headers);
+         String dataStr = HttpUtils.sendGetRequest(url, reqOpts,"utf-8");
 
-/**
- * 设置客服头像
- * 详细请看：http://mp.weixin.qq.com/wiki/9/6fff6f191ef92c126b043ada035cc935.html * Examples:
- * ```
- * api.setKfAccountAvatar('test@test', '/path/to/avatar.png');
- * ```
- * Result:
- * ```
- * {
- *  "errcode" : 0,
- *  "errmsg" : "ok",
- * }
- * ```
- * @param {String} account 账号名字，格式为：前缀@公共号名字
- * @param {String} filepath 头像路径
- */
-    exports.setKfAccountAvatar = async function (account, filepath) {
-  const { accessToken } = await this.ensureAccessToken();
+         JsonObject resp = (JsonObject) jsonParser.parse(dataStr);
+         Integer errCode = resp.get("errcode").getAsInt();
+
+         if(0 == errCode){
+             return true;
+         }else{
+             return false;
+         }
+     };
+
+    /**
+     * 设置客服头像
+     * 详细请看：http://mp.weixin.qq.com/wiki/9/6fff6f191ef92c126b043ada035cc935.html * Examples:
+     * ```
+     * api.setKfAccountAvatar('test@test', '/path/to/avatar.png');
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode" : 0,
+     *  "errmsg" : "ok",
+     * }
+     * ```
+     * @param {String} account 账号名字，格式为：前缀@公共号名字
+     * @param {String} filepath 头像路径
+     */
+    public boolean setKfAccountAvatar (String account, String filepath) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // http://api.weixin.qq.com/customservice/kfaccount/uploadheadimg?access_token=ACCESS_TOKEN&kf_account=KFACCOUNT
-        var stat = await statAsync(filepath);
-        var form = formstream();
-        form.file('media', filepath, path.basename(filepath), stat.size);
-        var prefix = 'https://api.weixin.qq.com/';
-        var url = prefix + 'customservice/kfaccount/uploadheadimg?access_token=' + accessToken + '&kf_account=' + account;
-        var opts = {
-                dataType: 'json',
-                method: 'POST',
-                timeout: 60000, // 60秒超时
-                headers: form.headers(),
-                data: form
-  };
-        return this.request(url, opts);
+        Map<String, Object> formData = new HashMap<String, Object>();
+        formData.put("media", new File(filepath));
+        String prefix = "https://api.weixin.qq.com/";
+        String url = prefix + "customservice/kfaccount/uploadheadimg?access_token=" + accessToken + "&kf_account=" + account;
+
+        String respStr = HttpUtils.sendPostFormDataRequest(url, formData);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        Integer errCode = resp.get("errcode").getAsInt();
+
+        if(0 == errCode){
+            return true;
+        }else{
+            return false;
+        }
     };
 
-/**
- * 创建客服会话
- * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044820&token=&lang=zh_CN * Examples:
- * ```
- * api.createKfSession('test@test', 'OPENID');
- * ```
- * Result:
- * ```
- * {
- *  "errcode" : 0,
- *  "errmsg" : "ok",
- * }
- * ```
- * @param {String} account 账号名字，格式为：前缀@公共号名字
- * @param {String} openid openid
- */
-    exports.createKfSession = async function(account, openid) {
-  const { accessToken } = await this.ensureAccessToken();
+    /**
+     * 创建客服会话
+     * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044820&token=&lang=zh_CN * Examples:
+     * ```
+     * api.createKfSession('test@test', 'OPENID');
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode" : 0,
+     *  "errmsg" : "ok",
+     * }
+     * ```
+     * @param {String} account 账号名字，格式为：前缀@公共号名字
+     * @param {String} openid openid
+     */
+    public boolean createKfSession (String account, String openid) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
         // https://api.weixin.qq.com/customservice/kfsession/create?access_token=ACCESS_TOKEN
-        var prefix = 'https://api.weixin.qq.com/';
-        var url = prefix + 'customservice/kfsession/create?access_token=' + accessToken;
-        var data = {
-                kf_account: account,
-                openid: openid
-  };
+        String prefix = "https://api.weixin.qq.com/";
+        String url = prefix + "customservice/kfsession/create?access_token=" + accessToken;
 
-        return this.request(url, postJSON(data));
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("kf_account", account);
+        data.put("openid", openid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        Integer errCode = resp.get("errcode").getAsInt();
+
+        if(0 == errCode){
+            return true;
+        }else{
+            return false;
+        }
+
+    }
+
+    /**
+     * 上传Logo
+     * Examples:
+     * ```
+     * api.uploadLogo('filepath');
+     * ```
+     *
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"ok",
+     *  "url":"http://mmbiz.qpic.cn/mmbiz/iaL1LJM1mF9aRKPZJkmG8xXhiaHqkKSVMMWeN3hLut7X7hicFNjakmxibMLGWpXrEXB33367o7zHN0CwngnQY7zb7g/0"
+     * }
+     * ``` * @name uploadLogo
+     * @param {String} filepath 文件路径
+     */
+    public JsonObject uploadLogo (String filepath) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        Map<String, Object> formData = new HashMap<String, Object>();
+        formData.put("buffer", new File(filepath));
+
+        String url = this.FILE_SERVER_PREFIX + "media/uploadimg?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostFormDataRequest(url, formData);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+    /**
+     * @name addLocations
+     * @param {Array} locations 位置
+     */
+     public JsonObject addLocations (List<String> locations) {
+         AccessToken token = this.ensureAccessToken();
+         String accessToken = token.getAccessToken();
+
+         Map<String, Object> data = new HashMap<String, Object>();
+         data.put("location_list", locations);
+
+         String url = "https://api.weixin.qq.com/card/location/batchadd?access_token=" + accessToken;
+
+         String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+         return resp;
+     };
+
+    /**
+     * @name getLocations
+     * @param {Array} locations 位置
+     */
+    public JsonObject getLocations (String offset, int count) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("offset", offset);
+        data.put("count", count);
+
+        String url = "https://api.weixin.qq.com/card/location/batchget?access_token=" + accessToken;
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
     };
+
+    public JsonObject getColors () {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/getcolors?access_token=" + accessToken;
+        Map<String, Object> reqOpts = new HashMap<String, Object>();
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("content-type", "application/json");
+        reqOpts.put("headers", headers);
+        String respStr = HttpUtils.sendGetRequest(url, reqOpts,"utf-8");
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+    /**
+     * 添加 卡劵
+     * Example：
+     * ```
+     * JsonObject ret = api.createCard(card))
+     * String card_id = res.get("card_id");
+     * ```
+     * @param card
+     * @return
+     */
+    public JsonObject createCard (Map<String, Object> card) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/create?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("card", card);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    public void getRedirectUrl (String url, String encryptCode, String cardId) {
+        // TODO
+    };
+
+    public JsonObject createQRCode (Map<String, Object> card) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/qrcode/create?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+            data.put("action_name", "QR_CARD");
+            Map<String, Object> actionInfo = new HashMap<String, Object>();
+                actionInfo.put("card", card);
+            data.put("action_info", actionInfo);
+            data.put("card", card);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    public JsonObject consumeCode (String code, String cardId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/code/consume?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("code", code);
+        data.put("cardId", cardId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    public JsonObject decryptCode (String encryptCode) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/code/decrypt?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("encrypt_code", encryptCode);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    public JsonObject deleteCard (String cardId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/delete?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("card_id", cardId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    public JsonObject getCode (String code) {
+        return getCode(code, null);
+    }
+
+    public JsonObject getCode (String code, String cardId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/code/get?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("code", code);
+        if(cardId != null) {
+            data.put("card_id", cardId);
+        }
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+
+    public JsonObject getCards (int offset, int count) {
+        return getCards(offset, count, null);
+    }
+
+    public JsonObject getCards (int offset, int count, List<String> status_list) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/batchget?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("offset", offset);
+        data.put("count", count);
+        if(status_list != null) {
+            data.put("status_list", status_list);
+        }
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+    public JsonObject getCard (String cardId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/get?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("card_id", cardId);
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+///**
+// * 获取用户已领取的卡券
+// * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1451025272&token=&lang=zh_CN
+// * Examples:
+// * ```
+// * api.getCardList('openid', 'card_id');
+// * ```
+// *
+// * @param {String} openid 用户的openid
+// * @param {String} cardId 卡券的card_id
+// */
+//    exports.getCardList = async function (openid, cardId) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        // {
+//        //  "openid":"openid",
+//        //  "card_id":"cardId"
+//        // }
+//        var prefix = 'https://api.weixin.qq.com/';
+//        var url = prefix + 'card/user/getcardlist?access_token=' + accessToken;
+//        var data = {
+//                'openid': openid,
+//                'card_id': cardId
+//  };
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    exports.updateCode = async function (code, cardId, newcode) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/code/update?access_token=' + accessToken;
+//        var data = {
+//                code: code,
+//                card_id: cardId,
+//                newcode: newcode
+//  };
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    exports.unavailableCode = async function (code, cardId) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/code/unavailable?access_token=' + accessToken;
+//        var data = {
+//                code: code
+//  };
+//        if (cardId) {
+//            data.card_id = cardId;
+//        }
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    exports.updateCard = async function (cardId, cardInfo) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/update?access_token=' + accessToken;
+//        var data = {
+//                card_id: cardId,
+//                member_card: cardInfo
+//  };
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    exports.updateCardStock = async function (cardId, num) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/modifystock?access_token=' + accessToken;
+//        var data = {
+//                card_id: cardId
+//  };
+//        if (num > 0) {
+//            data.increase_stock_value = Math.abs(num);
+//        } else {
+//            data.reduce_stock_value = Math.abs(num);
+//        }
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    exports.activateMembercard = async function (info) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/membercard/activate?access_token=' + accessToken;
+//        return this.request(url, postJSON(info));
+//    };
+//
+//    exports.getActivateMembercardUrl = async function (info) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/membercard/activate/geturl?access_token=' + accessToken;
+//        return this.request(url, postJSON(info));
+//    };
+//
+//
+//    exports.updateMembercard = async function (info) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/membercard/updateuser?access_token=' + accessToken;
+//        return this.request(url, postJSON(info));
+//    };
+//
+//    exports.getActivateTempinfo = async function (activate_ticket) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/membercard/activatetempinfo/get?access_token=' + accessToken;
+//        return this.request(url, postJSON({activate_ticket}));
+//    };
+//
+//    exports.activateUserForm = async function (data) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/membercard/activateuserform/set?access_token=' + accessToken;
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    exports.updateMovieTicket = async function (info) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/movieticket/updateuser?access_token=' + accessToken;
+//        return this.request(url, postJSON(info));
+//    };
+//
+//    exports.checkInBoardingPass = async function (info) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/boardingpass/checkin?access_token=' + accessToken;
+//        return this.request(url, postJSON(info));
+//    };
+//
+//    exports.updateLuckyMonkeyBalance = async function (code, cardId, balance) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/luckymonkey/updateuserbalance?access_token=' + accessToken;
+//        var data = {
+//                'code': code,
+//                'card_id': cardId,
+//                'balance': balance
+//  };
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    exports.updateMeetingTicket = async function (info) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/meetingticket/updateuser?access_token=' + accessToken;
+//        return this.request(url, postJSON(info));
+//    };
+//
+//    exports.setTestWhitelist = async function (info) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = 'https://api.weixin.qq.com/card/testwhitelist/set?access_token=' + accessToken;
+//        return this.request(url, postJSON(info));
 
 }
 

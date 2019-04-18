@@ -1,9 +1,9 @@
 # 公共API
 
 
-- [getAccessToken](getAccessToken)
-- [getLatestTicket](getLatestTicket)
-- [getIp](getIp)
+- [getAccessToken 获取accessToken](getAccessToken)
+- [getLatestTicket 获取最新的票据](getLatestTicket)
+- [getIp 获取微信IP](getIp)
 
 ### getAccessToken
 获取accessToken
