@@ -1,8 +1,20 @@
 package com.fanglesoft;
 
-import com.fanglesoft.entity.AccessToken;
-import com.fanglesoft.entity.WechatAPIOptions;
+import com.fanglesoft.entity.*;
+import com.fanglesoft.resolver.TicketStorageResolver;
 import com.fanglesoft.resolver.TokenStorageResolver;
+import com.fanglesoft.util.CryptoUtils;
+import com.fanglesoft.util.HttpUtils;
+import com.fanglesoft.util.MapUtils;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
 public class WechatAPI {
 
@@ -10,7 +22,9 @@ public class WechatAPI {
 
     private String appsecret;
 
-    private TokenStorageResolver tokenStorageResolver;
+    private static TokenStorageResolver tokenStorageResolver;
+
+    private static TicketStorageResolver ticketStorageResolver;
 
     private String PREFIX = "https://api.weixin.qq.com/cgi-bin/";
 
@@ -27,6 +41,8 @@ public class WechatAPI {
     private String WXA_PREFIX = "https://api.weixin.qq.com/wxa/";
 
     private WechatAPIOptions options;
+
+    private JsonParser jsonParser;
 
 
     /**
@@ -80,22 +96,30 @@ public class WechatAPI {
      * 以上即可满足单进程使用。
      * 当多进程时，token 需要全局维护，以下为保存 token 的接口。
      * ```
-     * WechatAPI api = new WechatAPI('appid', 'secret', async function () {
-     *   // 传入一个获取全局 token 的方法
-     *   var txt = await fs.readFile('access_token.txt', 'utf8');
-     *   return JSON.parse(txt);
-     * }, async function (token) {
-     *   // 请将 token 存储到全局，跨进程、跨机器级别的全局，比如写到数据库、redis等
-     *   // 这样才能在cluster模式及多机情况下使用，以下为写入到文件的示例
-     *   await fs.writeFile('access_token.txt', JSON.stringify(token));
-     * });
+     * WechatAPI api = new WechatAPI('appid', 'secret');
+     * ```
      * ```
      * @param {String} appid 在公众平台上申请得到的appid
      * @param {String} appsecret 在公众平台上申请得到的app secret
      * @param {TokenStorageResolver} tokenStorageResolver 可选的。获取全局token对象的方法，多进程模式部署时需在意
-     * @param {AsyncFunction} saveToken 可选的。保存全局token对象的方法，多进程模式部署时需在意
      */
     public WechatAPI(String appid, String appsecret, TokenStorageResolver tokenStorageResolver){
+        this.appid = appid;
+        this.appsecret = appsecret;
+        this.tokenStorageResolver = tokenStorageResolver;
+        this.jsonParser = new JsonParser();
+
+        registerTicketHandle(new TicketStorageResolver(new TicketStore()) {
+            @Override
+            public Ticket getTicket(String type) {
+                return this.getTicketStore().get(type);
+            }
+
+            @Override
+            public void saveTicket(String type, Ticket ticket) {
+                this.getTicketStore().put(type, ticket);
+            }
+        });
 
     }
 
@@ -113,4 +137,668 @@ public class WechatAPI {
         this.options = opts;
     }
 
+
+    public void request(String url, Map<String, Object> opts, Integer retry){
+
+    }
+
+    /*!
+     * 根据创建API时传入的appid和appsecret获取access token
+     * 进行后续所有API调用时，需要先获取access token
+     * 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=获取access_token> * 应用开发者无需直接调用本API。 * Examples:
+     * ```
+     * AccessToken token = api.getAccessToken();
+     * ```
+     * - `err`, 获取access token出现异常时的异常对象
+     * - `result`, 成功时得到的响应结果 * Result:
+     * ```
+     * {"access_token": "ACCESS_TOKEN","expires_in": 7200}
+     * ```
+     */
+    public AccessToken getAccessToken() {
+        String url = this.PREFIX + "token?grant_type=client_credential&appid=" + this.appid + "&secret=" + this.appsecret;
+        String dataStr = HttpUtils.sendGetRequest(url, "utf-8");
+        JsonObject data = (JsonObject) jsonParser.parse(dataStr);
+
+        // 过期时间，因网络延迟等，将实际过期时间提前10秒，以防止临界点
+        Long expireTime = new Date().getTime() + (data.get("expires_in").getAsLong() - 10) * 1000;
+        AccessToken token = new AccessToken(data.get("access_token").getAsString(), expireTime);
+
+        tokenStorageResolver.saveToken(token);
+        tokenStorageResolver.setAccessToken(token);
+
+        return token;
+    }
+
+    /*!
+     * 需要access token的接口调用如果采用preRequest进行封装后，就可以直接调用。
+     * 无需依赖 getAccessToken 为前置调用。
+     * 应用开发者无需直接调用此API。
+     * Examples:
+     * ```
+     * api.ensureAccessToken();
+     * ```
+     */
+    public AccessToken ensureAccessToken() {
+        // 调用用户传入的获取token的异步方法，获得token之后使用（并缓存它）。
+        AccessToken token = tokenStorageResolver.getAccessToken();
+        if (token != null && token.isValid()) {
+            return token;
+        }
+        return this.getAccessToken();
+    }
+
+    /**
+     * 多台服务器负载均衡时，ticketToken需要外部存储共享。
+     * 需要调用此registerTicketHandle来设置获取和保存的自定义方法。
+     * Examples:
+     * ```
+     * api.registerTicketHandle(new ticketStorageResolver(){
+     *     // ...
+     * });
+     * ```
+     * @param {TicketStorageResolver} getTicketToken 获取外部ticketToken的函数
+     */
+    public static void registerTicketHandle(TicketStorageResolver resolver){
+        ticketStorageResolver = resolver;
+    }
+
+    /**
+     * 获取js sdk所需的有效js ticket
+     * - `err`, 异常对象
+     * - `result`, 正常获取时的数据 * Result:
+     * - `errcode`, 0为成功
+     * - `errmsg`, 成功为'ok'，错误则为详细错误信息
+     * - `ticket`, js sdk有效票据，如：bxLdikRXVbTPdHSM05e5u5sUoXNKd8-41ZO3MhKoyN5OfkWITDGgnr2fwJ0m9E8NYzWKVZvdVtaUgWvsdshFKA
+     * - `expires_in`, 有效期7200秒，开发者必须在自己的服务全局缓存jsapi_ticket
+     */
+    public Ticket getTicket (String type) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "ticket/getticket?access_token=" + accessToken + "&type=" + type;
+
+        Map<String, Object> reqOpts = new HashMap<String, Object>();
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("content-type", "application/json");
+        reqOpts.put("headers", headers);
+        String dataStr = HttpUtils.sendGetRequest(url, reqOpts,"utf-8");
+        JsonObject data = (JsonObject) jsonParser.parse(dataStr);
+
+        // 过期时间，因网络延迟等，将实际过期时间提前10秒，以防止临界点
+        Long expireTime = new Date().getTime() + (data.get("expires_in").getAsLong() - 10) * 1000;
+        Ticket ticket = new Ticket(data.get("ticket").getAsString(), expireTime);
+        ticketStorageResolver.saveTicket(type, ticket);
+        return ticket;
+    }
+
+    public Ticket getTicket () {
+        return this.getTicket("jsapi");
+    }
+
+
+    /**
+     * 创建 随机字符串
+     * @return
+     */
+    public static String createNonceStr () {
+        String ret = "";
+        byte[] tmp = new byte[20];
+        for(int i = 0; i < 20; i++){
+            tmp[i] = (byte) ((Math.random() * (122-97)) + 97);
+        }
+        return new String(tmp);
+    }
+
+    /**
+     * 生成时间戳
+     */
+    public static String createTimestamp () {
+        return "" + Math.floor(new Date().getTime() / 1000);
+    }
+
+
+    /*!
+     * 排序查询字符串 */
+    public static String raw (Map<String, String> args) {
+        Set<String> setKeys = args.keySet();
+
+        Map<String, String> map = new TreeMap<String, String>(
+                new Comparator<String>() {
+                    public int compare(String obj1, String obj2) {
+                        // 升序排序
+                        return obj1.compareTo(obj2);
+                    }
+                });
+
+        for(String key : setKeys){
+            map.put(key, args.get(key));
+        }
+
+        Set<String> mapSetKeys = map.keySet();
+
+        String string = "";
+        for (String key : mapSetKeys) {
+            Object val = args.get(key);
+            string += '&' + key + '=' + val;
+        }
+        return string.substring(1);
+    }
+
+    /*!
+     * 签名算法 * @param {String} nonceStr 生成签名的随机串
+     * @param {String} jsapi_ticket 用于签名的jsapi_ticket
+     * @param {String} timestamp 时间戳
+     * @param {String} url 用于签名的url，注意必须与调用JSAPI时的页面URL完全一致 */
+    public String ticketSign (String nonceStr, String jsapi_ticket, String timestamp, String url) {
+
+        Map<String, String> ret = new HashMap<String, String>();
+        ret.put("jsapi_ticket", jsapi_ticket);
+        ret.put("nonceStr", nonceStr);
+        ret.put("timestamp", timestamp);
+        ret.put("url", url);
+
+        String string = raw(ret);
+        MessageDigest SHA1MessageDigest = null;
+        try {
+            SHA1MessageDigest = CryptoUtils.SHA1MessageDigest();
+            SHA1MessageDigest.reset();
+            SHA1MessageDigest.update(string.getBytes("UTF-8"));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        String signature = CryptoUtils.byteToStr(SHA1MessageDigest.digest());
+
+        return signature;
+    }
+
+    /*!
+     * 卡券card_ext里的签名算法
+     * @name signCardExt
+     * @param {String} api_ticket 用于签名的临时票据，获取方式见2.获取api_ticket。
+     * @param {String} card_id 生成卡券时获得的card_id
+     * @param {String} timestamp 时间戳，商户生成从1970 年1 月1 日是微信卡券接口文档00:00:00 至今的秒数,即当前的时间,且最终需要转换为字符串形式;由商户生成后传入。
+     * @param {String} code 指定的卡券code 码，只能被领一次。use_custom_code 字段为true 的卡券必须填写，非自定义code 不必填写。
+     * @param {String} openid 指定领取者的openid，只有该用户能领取。bind_openid 字段为true 的卡券必须填写，非自定义code 不必填写。
+     * @param {String} balance 红包余额，以分为单位。红包类型（LUCKY_MONEY）必填、其他卡券类型不必填。 */
+    public String signCardExt (String api_ticket, String card_id, String timestamp, String code, String openid, String balance) {
+
+        List<String> values = new ArrayList<String>();
+        values.add(api_ticket);
+        values.add(card_id);
+        values.add(timestamp);
+        values.add(code != null ? code : "");
+        values.add(openid != null ? openid : "");
+        values.add(balance != null ? balance : "");
+
+        Collections.sort(values, new Comparator< String >() {
+            @Override
+            public int compare(String lhs, String rhs) {
+                int i = lhs.compareTo(rhs);
+                if (i > 0) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+        });
+
+
+        String string = "";
+        for(String i : values){
+            string += i;
+        }
+
+        MessageDigest SHA1MessageDigest = null;
+        try {
+            SHA1MessageDigest = CryptoUtils.SHA1MessageDigest();
+            SHA1MessageDigest.reset();
+            SHA1MessageDigest.update(string.getBytes("UTF-8"));
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        String signature = CryptoUtils.byteToStr(SHA1MessageDigest.digest());
+
+        return signature;
+    };
+
+    public Ticket ensureTicket (String type) {
+        Ticket cache = ticketStorageResolver.getTicket(type);
+
+        Ticket ticket = null;
+        // 有ticket并且ticket有效直接调用
+        if (cache != null) {
+            ticket = new Ticket(cache.getTicket(), cache.getExpireTime());
+        }
+
+        // 没有ticket或者无效
+        if (ticket == null || !ticket.isValid()) {
+            // 从微信端获取ticket
+            ticket = ticketStorageResolver.getTicket(type);
+        }
+        return ticket;
+    };
+
+    /**
+     * 获取微信JS SDK Config的所需参数 * Examples:
+     * ```
+     * var param = {
+     *  debug: false,
+     *  jsApiList: ['onMenuShareTimeline', 'onMenuShareAppMessage'],
+     *  url: 'http://www.xxx.com'
+     * };
+     * api.getJsConfig(param);
+     * ```
+     * - `result`, 调用正常时得到的js sdk config所需参数
+     * @param {Object} param 参数
+     */
+    public JsConfig getJsConfig (Map<String, Object> param) {
+        Ticket ticket = this.ensureTicket("jsapi");
+        String nonceStr = createNonceStr();
+        String jsAPITicket = ticket.getTicket();
+        String timestamp = createTimestamp();
+        String signature = ticketSign(nonceStr, jsAPITicket, timestamp, param.get("url").toString());
+        String debug = param.get("debug").toString();
+        List<String> jsApiList = (List<String>) param.get("jsApiList");
+
+        JsConfig jsConfig = new JsConfig(
+                debug,
+                this.appid,
+                timestamp,
+                nonceStr,
+                signature,
+                jsApiList);
+
+        return jsConfig;
+    }
+
+    /**
+     * 获取微信JS SDK Config的所需参数
+     * Examples:
+     * ```
+     * var param = {
+     *  card_id: 'p-hXXXXXXX',
+     *  code: '1234',
+     *  openid: '111111',
+     *  balance: 100
+     * };
+     * api.getCardExt(param);
+     * ```
+     * - `result`, 调用正常时得到的card_ext对象，包含所需参数
+     * @name getCardExt
+     * @param {Object} param 参数
+     */
+    public Map<String, String> getCardExt (Map<String, String> param) {
+        Ticket apiTicket = this.ensureTicket("wx_card");
+        String timestamp = createTimestamp();
+        String signature = signCardExt(apiTicket.getTicket(),
+                param.get("card_id"),
+                timestamp,
+                param.get("code"),
+                param.get("openid"),
+                param.get("balance"));
+
+        Map<String, String> result = new HashMap<String, String>();
+        result.put("timestamp", timestamp);
+        result.put("signature", signature);
+        result.put("code", param.get("code") != null ? param.get("code").toString() : "");
+        result.put("openid", param.get("openid") != null ? param.get("openid").toString() : "");
+
+        if (param.containsKey("balance")) {
+            result.put("balance", param.get("balance"));
+        }
+
+        return result;
+    };
+
+    /**
+     * 获取最新的js api ticket
+     * Examples:
+     * ```
+     * api.getLatestTicket();
+     * ```
+     * - `err`, 获取js api ticket出现异常时的异常对象
+     * - `ticket`, 获取的ticket
+     */
+    public Ticket getLatestTicket () {
+        return this.ensureTicket("jsapi");
+    }
+
+
+    /**
+     * 获取微信服务器IP地址
+     * 详情请见：<http://mp.weixin.qq.com/wiki/index.php?title=%E8%8E%B7%E5%8F%96%E5%BE%AE%E4%BF%A1%E6%9C%8D%E5%8A%A1%E5%99%A8IP%E5%9C%B0%E5%9D%80>
+     * Examples:
+     * ```
+     * api.getIp();
+     * ```
+     * Result:
+     * ```
+     * ["127.0.0.1","127.0.0.1"]
+     * ```
+     */
+    public List<String> getIp () {
+        AccessToken accessToken = this.ensureAccessToken();
+        // https://api.weixin.qq.com/cgi-bin/getcallbackip?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "getcallbackip?access_token=" + accessToken;
+
+        Map<String, Object> reqOpts = new HashMap<String, Object>();
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("content-type", "application/json");
+        reqOpts.put("headers", headers);
+        String dataStr = HttpUtils.sendGetRequest(url, reqOpts,"utf-8");
+        JsonObject data = (JsonObject) jsonParser.parse(dataStr);
+
+        JsonArray array = data.get("ip_list").getAsJsonArray();
+
+        List<String> list = new ArrayList<String>();
+        for(int i = 0; i < array.size(); i++){
+            list.add(array.get(i).getAsString());
+        }
+
+        return list;
+    }
+
+
+    /**
+     * 获取客服聊天记录
+     * 详细请看：http://mp.weixin.qq.com/wiki/19/7c129ec71ddfa60923ea9334557e8b23.html
+     * Opts:
+     * ```
+     * {
+     *  "starttime" : 123456789,
+     *  "endtime" : 987654321,
+     *  "openid": "OPENID", // 非必须
+     *  "pagesize" : 10,
+     *  "pageindex" : 1,
+     * }
+     * ```
+     * Examples:
+     * ```
+     * var result = await api.getRecords(opts);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "recordlist": [
+     *    {
+     *      "worker": " test1",
+     *      "openid": "oDF3iY9WMaswOPWjCIp_f3Bnpljk",
+     *      "opercode": 2002,
+     *      "time": 1400563710,
+     *      "text": " 您好，客服test1为您服务。"
+     *    },
+     *    {
+     *      "worker": " test1",
+     *      "openid": "oDF3iY9WMaswOPWjCIp_f3Bnpljk",
+     *      "opercode": 2003,
+     *      "time": 1400563731,
+     *      "text": " 你好，有什么事情？ "
+     *    },
+     *  ]
+     * }
+     * ```
+     * @param {Object} opts 查询条件
+     */
+    public void getRecords (Map<String, Object> opts) {
+        AccessToken accessToken = this.ensureAccessToken();
+        // https://api.weixin.qq.com/customservice/msgrecord/getrecord?access_token=ACCESS_TOKEN
+        String url = this.CUSTOM_SERVICE_PREFIX + "msgrecord/getrecord?access_token=" + accessToken;
+        return this.request(url, postJSON(opts));
+    };
+
+/**
+ * 获取客服基本信息
+ * 详细请看：http://dkf.qq.com/document-3_1.html
+ * Examples:
+ * ```
+ * var result = await api.getCustomServiceList();
+ * ```
+ * Result:
+ * ```
+ * {
+ *   "kf_list": [
+ *     {
+ *       "kf_account": "test1@test",
+ *       "kf_nick": "ntest1",
+ *       "kf_id": "1001"
+ *     },
+ *     {
+ *       "kf_account": "test2@test",
+ *       "kf_nick": "ntest2",
+ *       "kf_id": "1002"
+ *     },
+ *     {
+ *       "kf_account": "test3@test",
+ *       "kf_nick": "ntest3",
+ *       "kf_id": "1003"
+ *     }
+ *   ]
+ * }
+ * ```
+ */
+    exports.getCustomServiceList = async function () {
+  const { accessToken } = await this.ensureAccessToken();
+        // https://api.weixin.qq.com/cgi-bin/customservice/getkflist?access_token= ACCESS_TOKEN
+        var url = this.prefix + 'customservice/getkflist?access_token=' + accessToken;
+        return this.request(url, {dataType: 'json'});
+    };
+
+/**
+ * 获取在线客服接待信息
+ * 详细请看：http://dkf.qq.com/document-3_2.html * Examples:
+ * ```
+ * var result = await api.getOnlineCustomServiceList();
+ * ```
+ * Result:
+ * ```
+ * {
+ *   "kf_online_list": [
+ *     {
+ *       "kf_account": "test1@test",
+ *       "status": 1,
+ *       "kf_id": "1001",
+ *       "auto_accept": 0,
+ *       "accepted_case": 1
+ *     },
+ *     {
+ *       "kf_account": "test2@test",
+ *       "status": 1,
+ *       "kf_id": "1002",
+ *       "auto_accept": 0,
+ *       "accepted_case": 2
+ *     }
+ *   ]
+ * }
+ * ```
+ */
+    exports.getOnlineCustomServiceList = async function () {
+  const { accessToken } = await this.ensureAccessToken();
+        // https://api.weixin.qq.com/cgi-bin/customservice/getonlinekflist?access_token= ACCESS_TOKEN
+        var url = this.prefix + 'customservice/getonlinekflist?access_token=' + accessToken;
+        return this.request(url, {dataType: 'json'});
+    };
+
+/**
+ * 添加客服账号
+ * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN * Examples:
+ * ```
+ * var result = await api.addKfAccount('test@test', 'nickname', 'password');
+ * ```
+ * Result:
+ * ```
+ * {
+ *  "errcode" : 0,
+ *  "errmsg" : "ok",
+ * }
+ * ```
+ * @param {String} account 账号名字，格式为：前缀@公共号名字
+ * @param {String} nick 昵称
+ */
+    exports.addKfAccount = async function (account, nick) {
+  const { accessToken } = await this.ensureAccessToken();
+        // https://api.weixin.qq.com/customservice/kfaccount/add?access_token=ACCESS_TOKEN
+        var prefix = 'https://api.weixin.qq.com/';
+        var url = prefix + 'customservice/kfaccount/add?access_token=' + accessToken;
+        var data = {
+                'kf_account': account,
+                'nickname': nick
+  };
+
+        return this.request(url, postJSON(data));
+    };
+
+/**
+ * 邀请绑定客服帐号
+ * 详细请看：https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN
+ * Examples:
+ * ```
+ * var result = await api.inviteworker('test@test', 'invite_wx');
+ * ```
+ * Result:
+ * ```
+ * {
+ *  "errcode" : 0,
+ *  "errmsg" : "ok",
+ * }
+ * ```
+ * @param {String} account 账号名字，格式为：前缀@公共号名字
+ * @param {String} wx 邀请绑定的个人微信账号
+ */
+    exports.inviteworker = async function (account, wx) {
+  const { accessToken } = await this.ensureAccessToken();
+        // https://api.weixin.qq.com/customservice/kfaccount/inviteworker?access_token=ACCESS_TOKEN
+        var prefix = 'https://api.weixin.qq.com/';
+        var url = prefix + 'customservice/kfaccount/inviteworker?access_token=' + accessToken;
+        var data = {
+                'kf_account': account,
+                'invite_wx': wx
+  };
+
+        return this.request(url, postJSON(data));
+    };
+
+/**
+ * 设置客服账号
+ * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044813&token=&lang=zh_CN * Examples:
+ * ```
+ * api.updateKfAccount('test@test', 'nickname', 'password');
+ * ```
+ * Result:
+ * ```
+ * {
+ *  "errcode" : 0,
+ *  "errmsg" : "ok",
+ * }
+ * ```
+ * @param {String} account 账号名字，格式为：前缀@公共号名字
+ * @param {String} nick 昵称
+ */
+    exports.updateKfAccount = async function (account, nick) {
+  const { accessToken } = await this.ensureAccessToken();
+        // https://api.weixin.qq.com/customservice/kfaccount/add?access_token=ACCESS_TOKEN
+        var prefix = 'https://api.weixin.qq.com/';
+        var url = prefix + 'customservice/kfaccount/update?access_token=' + accessToken;
+        var data = {
+                'kf_account': account,
+                'nickname': nick
+  };
+
+        return this.request(url, postJSON(data));
+    };
+
+/**
+ * 删除客服账号
+ * 详细请看：http://mp.weixin.qq.com/wiki/9/6fff6f191ef92c126b043ada035cc935.html * Examples:
+ * ```
+ * api.deleteKfAccount('test@test');
+ * ```
+ * Result:
+ * ```
+ * {
+ *  "errcode" : 0,
+ *  "errmsg" : "ok",
+ * }
+ * ```
+ * @param {String} account 账号名字，格式为：前缀@公共号名字
+ */
+    exports.deleteKfAccount = async function (account) {
+  const { accessToken } = await this.ensureAccessToken();
+        // https://api.weixin.qq.com/customservice/kfaccount/del?access_token=ACCESS_TOKEN
+        var prefix = 'https://api.weixin.qq.com/';
+        var url = prefix + 'customservice/kfaccount/del?access_token=' + accessToken + '&kf_account=' + account;
+
+        return this.request(url, {dataType: 'json'});
+    };
+
+/**
+ * 设置客服头像
+ * 详细请看：http://mp.weixin.qq.com/wiki/9/6fff6f191ef92c126b043ada035cc935.html * Examples:
+ * ```
+ * api.setKfAccountAvatar('test@test', '/path/to/avatar.png');
+ * ```
+ * Result:
+ * ```
+ * {
+ *  "errcode" : 0,
+ *  "errmsg" : "ok",
+ * }
+ * ```
+ * @param {String} account 账号名字，格式为：前缀@公共号名字
+ * @param {String} filepath 头像路径
+ */
+    exports.setKfAccountAvatar = async function (account, filepath) {
+  const { accessToken } = await this.ensureAccessToken();
+        // http://api.weixin.qq.com/customservice/kfaccount/uploadheadimg?access_token=ACCESS_TOKEN&kf_account=KFACCOUNT
+        var stat = await statAsync(filepath);
+        var form = formstream();
+        form.file('media', filepath, path.basename(filepath), stat.size);
+        var prefix = 'https://api.weixin.qq.com/';
+        var url = prefix + 'customservice/kfaccount/uploadheadimg?access_token=' + accessToken + '&kf_account=' + account;
+        var opts = {
+                dataType: 'json',
+                method: 'POST',
+                timeout: 60000, // 60秒超时
+                headers: form.headers(),
+                data: form
+  };
+        return this.request(url, opts);
+    };
+
+/**
+ * 创建客服会话
+ * 详细请看：http://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1458044820&token=&lang=zh_CN * Examples:
+ * ```
+ * api.createKfSession('test@test', 'OPENID');
+ * ```
+ * Result:
+ * ```
+ * {
+ *  "errcode" : 0,
+ *  "errmsg" : "ok",
+ * }
+ * ```
+ * @param {String} account 账号名字，格式为：前缀@公共号名字
+ * @param {String} openid openid
+ */
+    exports.createKfSession = async function(account, openid) {
+  const { accessToken } = await this.ensureAccessToken();
+        // https://api.weixin.qq.com/customservice/kfsession/create?access_token=ACCESS_TOKEN
+        var prefix = 'https://api.weixin.qq.com/';
+        var url = prefix + 'customservice/kfsession/create?access_token=' + accessToken;
+        var data = {
+                kf_account: account,
+                openid: openid
+  };
+
+        return this.request(url, postJSON(data));
+    };
+
 }
+
