@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-group 'com.fanglesoft'
+group 'com.fangle'
 version '1.0.0'
 
 sourceCompatibility = 1.8
