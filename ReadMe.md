@@ -23,3 +23,29 @@
 - [素材管理](docs/materialManager.md)
 - [摇一摇周边](docs/shake.md)
 - [卡劵管理](docs/card.md)
+
+
+
+## Usage
+
+```
+  WechatAPI api = new WechatAPI(appid, appsecret);
+```
+
+## 多进程
+当多进程时，token需要全局维护，以下为保存token的接口：
+```
+WechatAPI api = new WechatAPI(appid, appsecret, new TokenStorageResolver() {
+    @Override
+    public AccessToken getToken() {
+        AccessToken token = 从文件、redis等渠道获取保存的accessToken
+        return token;
+    }
+    
+    @Override
+    public void saveToken(AccessToken accessToken) {
+        // code...
+        // 保存到文件、redis等渠道
+    }
+});
+```

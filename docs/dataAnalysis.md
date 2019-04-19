@@ -7,7 +7,7 @@
 详情请见：<http://mp.weixin.qq.com/wiki/8/c0453610fb5131d1fcb17b4e87c82050.html>
 Examples:
 ```
-JsonObject result = api.datacube(
+JsonArray result = api.datacube(
      DatacubeType.getArticleSummary,
      startDate,
      endDate

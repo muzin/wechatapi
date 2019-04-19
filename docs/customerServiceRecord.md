@@ -1,15 +1,15 @@
 # 客服消息 API
 
 
-- [getRecords 获取客服聊天记录](getRecords)
-- [getCustomServiceList 获取客服基本信息](getCustomServiceList)
-- [getOnlineCustomServiceList 获取在线客服接待信息](getIp)
-- [addKfAccount 添加客服信息](addKfAccount)
-- [inviteworker 邀请绑定客服帐号](inviteworker)
-- [updateKfAccount 设置客服账号](updateKfAccount)
-- [deleteKfAccount 删除客服账号](deleteKfAccount)
-- [setKfAccountAvatar 设置客服头像](setKfAccountAvatar)
-- [createKfSession 创建客服会话](createKfSession)
+- [getRecords 获取客服聊天记录](#getRecords)
+- [getCustomServiceList 获取客服基本信息](#getCustomServiceList)
+- [getOnlineCustomServiceList 获取在线客服接待信息](#getOnlineCustomServiceList)
+- [addKfAccount 添加客服信息](#addKfAccount)
+- [inviteworker 邀请绑定客服帐号](#inviteworker)
+- [updateKfAccount 设置客服账号](#updateKfAccount)
+- [deleteKfAccount 删除客服账号](#deleteKfAccount)
+- [setKfAccountAvatar 设置客服头像](#setKfAccountAvatar)
+- [createKfSession 创建客服会话](#createKfSession)
 
 
 ### getRecords
