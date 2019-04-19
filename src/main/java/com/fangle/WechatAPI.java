@@ -20,9 +20,9 @@ public class WechatAPI {
 
     private String appsecret;
 
-    private static TokenStorageResolver tokenStorageResolver;
+    private TokenStorageResolver tokenStorageResolver;
 
-    private static TicketStorageResolver ticketStorageResolver;
+    private TicketStorageResolver ticketStorageResolver;
 
     private String PREFIX = "https://api.weixin.qq.com/cgi-bin/";
 
@@ -109,7 +109,7 @@ public class WechatAPI {
         this.tokenStorageResolver = tokenStorageResolver;
         this.jsonParser = new JsonParser();
 
-        registerTicketHandle(new TicketStorageResolver(new TicketStore()) {
+        this.ticketStorageResolver = new TicketStorageResolver(new TicketStore()) {
             @Override
             public Ticket getTicket(String type) {
                 return this.getTicketStore().get(type);
@@ -119,7 +119,7 @@ public class WechatAPI {
             public void saveTicket(String type, Ticket ticket) {
                 this.getTicketStore().put(type, ticket);
             }
-        });
+        };
 
     }
 
@@ -135,11 +135,6 @@ public class WechatAPI {
      */
     public void setOpts(WechatAPIOptions opts) {
         this.options = opts;
-    }
-
-
-    public void request(String url, Map<String, Object> opts, Integer retry){
-
     }
 
     /*!
@@ -186,21 +181,6 @@ public class WechatAPI {
             return token;
         }
         return this.getAccessToken();
-    }
-
-    /**
-     * 多台服务器负载均衡时，ticketToken需要外部存储共享。
-     * 需要调用此registerTicketHandle来设置获取和保存的自定义方法。
-     * Examples:
-     * ```
-     * api.registerTicketHandle(new ticketStorageResolver(){
-     *     // ...
-     * });
-     * ```
-     * @param {TicketStorageResolver} getTicketToken 获取外部ticketToken的函数
-     */
-    public static void registerTicketHandle(TicketStorageResolver resolver){
-        ticketStorageResolver = resolver;
     }
 
     /**
@@ -386,7 +366,8 @@ public class WechatAPI {
     };
 
     /**
-     * 获取微信JS SDK Config的所需参数 * Examples:
+     * 获取微信JS SDK Config的所需参数
+     * Examples:
      * ```
      * var param = {
      *  debug: false,
