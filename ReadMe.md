@@ -36,16 +36,26 @@
 当多进程时，token需要全局维护，以下为保存token的接口：
 ```
 WechatAPI api = new WechatAPI(appid, appsecret, new TokenStorageResolver() {
+
+    /**
+     * 获取token
+     * 程序内部将通过此方法获取token
+     */
     @Override
     public AccessToken getToken() {
         AccessToken token = 从文件、redis等渠道获取保存的accessToken
         return token;
     }
     
+    /**
+     * 保存token
+     * 程序内部每次更新accessToken时，将会通知此方法
+     */
     @Override
     public void saveToken(AccessToken accessToken) {
         // code...
         // 保存到文件、redis等渠道
     }
 });
+
 ```
