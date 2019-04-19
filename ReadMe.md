@@ -24,7 +24,21 @@
 - [摇一摇周边](docs/shake.md)
 - [卡劵管理](docs/card.md)
 
+## Installtion
 
+```
+// 需引入以下 jar 包
+
+// https://mvnrepository.com/artifact/com.google.code.gson/gson
+compile group: 'com.google.code.gson', name: 'gson', version: '2.8.2'
+
+// https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient
+compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.6'
+
+// https://mvnrepository.com/artifact/org.apache.httpcomponents/httpmime
+compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.6'
+
+```
 
 ## Usage
 
