@@ -6,12 +6,14 @@
 - [getIp 获取微信IP](#getIp)
 
 ### getAccessToken
-获取accessToken
+获取accessToken,
+
 Examples:
 ```
 api.getAccessToken();
 ```
-
+> 不建议获取accessToken,程序中已经维护好accessToken的使用。
+> 直接调用功能方法即可。
 
 ### getLatestTicket
 
