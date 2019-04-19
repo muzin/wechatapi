@@ -1,4 +1,4 @@
-package com.fanglesoft.entity;
+package com.fangle.entity;
 
 import java.util.HashMap;
 

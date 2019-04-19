@@ -1,4 +1,4 @@
-package com.fanglesoft.util;
+package com.fangle.util;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

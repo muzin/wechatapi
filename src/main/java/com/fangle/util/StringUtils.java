@@ -1,4 +1,4 @@
-package com.fanglesoft.util;
+package com.fangle.util;
 
 public class StringUtils {
 

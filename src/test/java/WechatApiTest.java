@@ -1,4 +1,4 @@
-import com.fanglesoft.WechatAPI;
+import com.fangle.WechatAPI;
 import org.junit.Assert;
 import org.junit.Test;
 

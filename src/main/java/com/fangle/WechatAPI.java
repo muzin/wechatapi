@@ -1,11 +1,10 @@
-package com.fanglesoft;
+package com.fangle;
 
-import com.fanglesoft.entity.*;
-import com.fanglesoft.resolver.TicketStorageResolver;
-import com.fanglesoft.resolver.TokenStorageResolver;
-import com.fanglesoft.util.CryptoUtils;
-import com.fanglesoft.util.HttpUtils;
-import com.fanglesoft.util.MapUtils;
+import com.fangle.entity.*;
+import com.fangle.resolver.TicketStorageResolver;
+import com.fangle.resolver.TokenStorageResolver;
+import com.fangle.util.CryptoUtils;
+import com.fangle.util.HttpUtils;
 import com.google.gson.*;
 
 import java.io.File;
@@ -1105,143 +1104,257 @@ public class WechatAPI {
         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
         return resp;
     }
-///**
-// * 获取用户已领取的卡券
-// * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1451025272&token=&lang=zh_CN
-// * Examples:
-// * ```
-// * api.getCardList('openid', 'card_id');
-// * ```
-// *
-// * @param {String} openid 用户的openid
-// * @param {String} cardId 卡券的card_id
-// */
-//    exports.getCardList = async function (openid, cardId) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        // {
-//        //  "openid":"openid",
-//        //  "card_id":"cardId"
-//        // }
-//        var prefix = 'https://api.weixin.qq.com/';
-//        var url = prefix + 'card/user/getcardlist?access_token=' + accessToken;
-//        var data = {
-//                'openid': openid,
-//                'card_id': cardId
-//  };
-//        return this.request(url, postJSON(data));
-//    };
-//
-//    exports.updateCode = async function (code, cardId, newcode) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/code/update?access_token=' + accessToken;
-//        var data = {
-//                code: code,
-//                card_id: cardId,
-//                newcode: newcode
-//  };
-//        return this.request(url, postJSON(data));
-//    };
-//
-//    exports.unavailableCode = async function (code, cardId) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/code/unavailable?access_token=' + accessToken;
-//        var data = {
-//                code: code
-//  };
-//        if (cardId) {
-//            data.card_id = cardId;
-//        }
-//        return this.request(url, postJSON(data));
-//    };
-//
-//    exports.updateCard = async function (cardId, cardInfo) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/update?access_token=' + accessToken;
-//        var data = {
-//                card_id: cardId,
-//                member_card: cardInfo
-//  };
-//        return this.request(url, postJSON(data));
-//    };
-//
-//    exports.updateCardStock = async function (cardId, num) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/modifystock?access_token=' + accessToken;
-//        var data = {
-//                card_id: cardId
-//  };
-//        if (num > 0) {
-//            data.increase_stock_value = Math.abs(num);
-//        } else {
-//            data.reduce_stock_value = Math.abs(num);
-//        }
-//        return this.request(url, postJSON(data));
-//    };
-//
-//    exports.activateMembercard = async function (info) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/membercard/activate?access_token=' + accessToken;
-//        return this.request(url, postJSON(info));
-//    };
-//
-//    exports.getActivateMembercardUrl = async function (info) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/membercard/activate/geturl?access_token=' + accessToken;
-//        return this.request(url, postJSON(info));
-//    };
-//
-//
-//    exports.updateMembercard = async function (info) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/membercard/updateuser?access_token=' + accessToken;
-//        return this.request(url, postJSON(info));
-//    };
-//
-//    exports.getActivateTempinfo = async function (activate_ticket) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/membercard/activatetempinfo/get?access_token=' + accessToken;
-//        return this.request(url, postJSON({activate_ticket}));
-//    };
-//
-//    exports.activateUserForm = async function (data) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/membercard/activateuserform/set?access_token=' + accessToken;
-//        return this.request(url, postJSON(data));
-//    };
-//
-//    exports.updateMovieTicket = async function (info) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/movieticket/updateuser?access_token=' + accessToken;
-//        return this.request(url, postJSON(info));
-//    };
-//
-//    exports.checkInBoardingPass = async function (info) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/boardingpass/checkin?access_token=' + accessToken;
-//        return this.request(url, postJSON(info));
-//    };
-//
-//    exports.updateLuckyMonkeyBalance = async function (code, cardId, balance) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/luckymonkey/updateuserbalance?access_token=' + accessToken;
-//        var data = {
-//                'code': code,
-//                'card_id': cardId,
-//                'balance': balance
-//  };
-//        return this.request(url, postJSON(data));
-//    };
-//
-//    exports.updateMeetingTicket = async function (info) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/meetingticket/updateuser?access_token=' + accessToken;
-//        return this.request(url, postJSON(info));
-//    };
-//
-//    exports.setTestWhitelist = async function (info) {
-//  const { accessToken } = await this.ensureAccessToken();
-//        var url = 'https://api.weixin.qq.com/card/testwhitelist/set?access_token=' + accessToken;
-//        return this.request(url, postJSON(info));
+    /**
+     * 获取用户已领取的卡券
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1451025272&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.getCardList('openid', 'card_id');
+     * ```
+     *
+     * @param {String} openid 用户的openid
+     * @param {String} cardId 卡券的card_id
+     */
+     public JsonObject getCardList (String openid, String cardId) {
+
+         AccessToken token = this.ensureAccessToken();
+         String accessToken = token.getAccessToken();
+
+         String prefix = "https://api.weixin.qq.com/";
+         String url = prefix + "card/user/getcardlist?access_token=" + accessToken;
+
+         Map<String, Object> data = new HashMap<String, Object>();
+         data.put("openid", openid);
+         data.put("card_id", cardId);
+
+         String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+         return resp;
+     }
+
+     public JsonObject updateCode (String code, String cardId, String newcode) {
+
+         AccessToken token = this.ensureAccessToken();
+         String accessToken = token.getAccessToken();
+
+         String url = "https://api.weixin.qq.com/card/code/update?access_token=" + accessToken;
+
+         Map<String, Object> data = new HashMap<String, Object>();
+         data.put("code", code);
+         data.put("card_id", cardId);
+         data.put("newcode", newcode);
+
+         String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+         return resp;
+    }
+
+    public JsonObject unavailableCode (String code) {
+         return unavailableCode(code, null);
+    }
+    public JsonObject unavailableCode (String code, String cardId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/code/unavailable?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("code", code);
+
+        if(cardId != null) {
+            data.put("card_id", cardId);
+        }
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject updateCard (String cardId, Map<String, Object> cardInfo) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/update?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("card_id", cardId);
+        data.put("member_card", cardInfo);
+
+
+        if(cardId != null) {
+            data.put("card_id", cardId);
+        }
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject updateCardStock (String cardId, int num) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/modifystock?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("card_id", cardId);
+
+        if (num > 0) {
+            data.put("increase_stock_value", Math.abs(num));
+        } else {
+            data.put("reduce_stock_value", Math.abs(num));
+        }
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+
+    };
+
+    public JsonObject activateMembercard (Map<String, Object> info) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/membercard/activate?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(info));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject getActivateMembercardUrl (Map<String, Object> info) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/membercard/activate/geturl?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(info));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+
+    public JsonObject updateMembercard (Map<String, Object> info) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/membercard/updateuser?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(info));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject getActivateTempinfo (Map<String, Object> activate_ticket) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/membercard/activatetempinfo/get?access_token=" + accessToken;
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("activate_ticket", activate_ticket);
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject activateUserForm (Map<String, Object> data) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/membercard/activateuserform/set?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject updateMovieTicket (Map<String, Object> info) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/movieticket/updateuser?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(info));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject checkInBoardingPass (Map<String, Object> info) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/boardingpass/checkin?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(info));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject updateLuckyMonkeyBalance (String code, String cardId, String balance) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/luckymonkey/updateuserbalance?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("code", code);
+        data.put("card_id", cardId);
+        data.put("balance", balance);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject updateMeetingTicket (Map<String, Object> info) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/meetingticket/updateuser?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(info));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject setTestWhitelist (Map<String, Object> info) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = "https://api.weixin.qq.com/card/testwhitelist/set?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(info));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
 
 }
 

@@ -1,6 +1,6 @@
-package com.fanglesoft.resolver;
+package com.fangle.resolver;
 
-import com.fanglesoft.entity.AccessToken;
+import com.fangle.entity.AccessToken;
 
 public abstract class TokenStorageResolver {
 

@@ -1,8 +1,7 @@
-package com.fanglesoft.resolver;
+package com.fangle.resolver;
 
-import com.fanglesoft.entity.AccessToken;
-import com.fanglesoft.entity.Ticket;
-import com.fanglesoft.entity.TicketStore;
+import com.fangle.entity.Ticket;
+import com.fangle.entity.TicketStore;
 
 public abstract class TicketStorageResolver {
 

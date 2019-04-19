@@ -1,4 +1,4 @@
-package com.fanglesoft.util;
+package com.fangle.util;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,7 +11,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -19,7 +18,6 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
@@ -261,21 +259,6 @@ public class HttpUtils {
         }
         return responseContent;
     }
-
-//
-//    public Map<String, Object> postJSON(Map<String, Object> data) {
-//        Map<String, Object> ret = new HashMap<String, Object>();
-//        ret.put()
-//        return {
-//                dataType: 'json',
-//                method: 'POST',
-//                data: JSON.stringify(data),
-//                headers: {
-//            'Content-Type': 'application/json',
-//                    'Accept': 'application/json'
-//        }
-//  };
-//    }
 
 
 }
