@@ -2185,5 +2185,521 @@ public class WechatAPI {
         return resp;
     }
 
+
+
+
+    /**
+     * 获取用户基本信息。可以设置lang，其中zh_CN 简体，zh_TW 繁体，en 英语。默认为en
+     * 详情请见：<http://mp.weixin.qq.com/wiki/index.php?title=获取用户基本信息>
+     * Examples:
+     * ```
+     * api.getUser(openid);
+     * api.getUser({openid: 'openid', lang: 'en'});
+     * ```
+     *
+     * Result:
+     * ```
+     * {
+     *  "subscribe": 1,
+     *  "openid": "o6_bmjrPTlm6_2sgVt7hMZOPfL2M",
+     *  "nickname": "Band",
+     *  "sex": 1,
+     *  "language": "zh_CN",
+     *  "city": "广州",
+     *  "province": "广东",
+     *  "country": "中国",
+     *  "headimgurl": "http://wx.qlogo.cn/mmopen/g3MonUZtNHkdmzicIlibx6iaFqAc56vxLSUfpb6n5WKSYVY0ChQKkiaJSgQ1dZuTOgvLLrhJbERQQ4eMsv84eavHiaiceqxibJxCfHe/0",
+     *  "subscribe_time": 1382694957
+     * }
+     * ```
+     * Param:
+     * - openid {String} 用户的openid。
+     * - language {String} 语言
+     */
+    public JsonObject getUser (String openid) {
+        return getUser(openid, "zh_CN");
+    }
+
+    public JsonObject getUser (String openid, String language) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/user/info?access_token=ACCESS_TOKEN&openid=OPENID
+        String url = this.PREFIX + "user/info?openid=" + openid
+                + "&lang=" + language
+                + "&access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(url);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+    /**
+     * 批量获取用户基本信息
+     * Example:
+     * ```
+     * api.batchGetUsers(['openid1', 'openid2'])
+     * api.batchGetUsers(['openid1', 'openid2'], 'en')
+     * ```
+     * Result:
+     * ```
+     * {
+     *   "user_info_list": [{
+     *     "subscribe": 1,
+     *     "openid": "otvxTs4dckWG7imySrJd6jSi0CWE",
+     *     "nickname": "iWithery",
+     *     "sex": 1,
+     *     "language": "zh_CN",
+     *     "city": "Jieyang",
+     *     "province": "Guangdong",
+     *     "country": "China",
+     *     "headimgurl": "http://wx.qlogo.cn/mmopen/xbIQx1GRqdvyqkMMhEaGOX802l1CyqMJNgUzKP8MeAeHFicRDSnZH7FY4XB7p8XHXIf6uJA2SCunTPicGKezDC4saKISzRj3nz/0",
+     *     "subscribe_time": 1434093047,
+     *     "unionid": "oR5GjjgEhCMJFyzaVZdrxZ2zRRF4",
+     *     "remark": "",
+     *     "groupid": 0
+     *   }, {
+     *     "subscribe": 0,
+     *     "openid": "otvxTs_JZ6SEiP0imdhpi50fuSZg",
+     *     "unionid": "oR5GjjjrbqBZbrnPwwmSxFukE41U",
+     *   }]
+     * }
+     * ```
+     * @param {Array} openids 用户的openid数组。
+     * @param {String} lang  语言(zh_CN, zh_TW, en),默认简体中文(zh_CN)
+     */
+    public JsonArray batchGetUsers (List<String> openids) {
+        return batchGetUsers(openids, "zh_CN");
+    }
+    public JsonArray batchGetUsers (List<String> openids, String language) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "user/info/batchget?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+            List<Map<String, String>> user_list = new ArrayList<Map<String, String>>();
+            for(String openid : openids){
+                Map<String, String> openItem = new HashMap<String, String>();
+                openItem.put("openid", openid);
+                openItem.put("lang", language);
+                user_list.add(openItem);
+            }
+        data.put("user_list", user_list);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        JsonArray userInfoList = resp.get("user_info_list").getAsJsonArray();
+
+        return userInfoList;
+    };
+
+    /**
+     * 获取关注者列表
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=获取关注者列表
+     * Examples:
+     * ```
+     * api.getFollowers();
+     * // or
+     * api.getFollowers(nextOpenid);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "total":2,
+     *  "count":2,
+     *  "data":{
+     *    "openid":["","OPENID1","OPENID2"]
+     *  },
+     *  "next_openid":"NEXT_OPENID"
+     * }
+     * ```
+     * @param {String} nextOpenid 调用一次之后，传递回来的nextOpenid。第一次获取时可不填
+     */
+    public JsonObject getFollowers () {
+        return getFollowers(null);
+    }
+    public JsonObject getFollowers (String nextOpenid) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        if(nextOpenid == null){
+            nextOpenid = "";
+        }
+
+        // https://api.weixin.qq.com/cgi-bin/user/get?access_token=ACCESS_TOKEN&next_openid=NEXT_OPENID
+        String url = this.PREFIX + "user/get?next_openid=" + nextOpenid + "&access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(url);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 设置用户备注名
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=设置用户备注名接口
+     * Examples:
+     * ```
+     * api.updateRemark(openid, remark);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"ok"
+     * }
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} remark 新的备注名，长度必须小于30字符
+     */
+    public boolean updateRemark (String openid, String remark) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/user/info/updateremark?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "user/info/updateremark?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("openid", openid);
+        data.put("remark", remark);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    };
+
+    /**
+     * 创建标签
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.createTags(name);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "id":tagId,
+     *  "name":tagName
+     * }
+     * ```
+     * @param {String} name 标签名
+     */
+    public JsonObject createTags (String name){
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/tags/create?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "tags/create?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+            Map<String, Object> tagMap = new HashMap<String, Object>();
+            tagMap.put("name", name);
+        data.put("tag", tagMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 获取公众号已创建的标签
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.getTags();
+     * ```
+     * Result:
+     * ```
+     *  {
+     *    "tags":[{
+     *        "id":1,
+     *        "name":"每天一罐可乐星人",
+     *        "count":0 //此标签下粉丝数
+     *  },{
+     *    "id":2,
+     *    "name":"星标组",
+     *    "count":0
+     *  },{
+     *    "id":127,
+     *    "name":"广东",
+     *    "count":5
+     *  }
+     *    ]
+     *  }
+     * ```
+     */
+    public JsonArray getTags (){
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/tags/get?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "tags/get?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(url);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        JsonArray tags = resp.get("tags").getAsJsonArray();
+
+        return tags;
+    };
+
+    /**
+     * 编辑标签
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.updateTag(id,name);
+     * ```
+     * Result:
+     * ```
+     *  {
+     *    "errcode":0,
+     *    "errmsg":"ok"
+     *  }
+     * ```
+     * @param {String} id 标签id
+     * @param {String} name 标签名
+     */
+    public boolean updateTag (String id, String name) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/tags/update?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "tags/update?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+            Map<String, Object> tagMap = new HashMap<String, Object>();
+            tagMap.put("id", id);
+            tagMap.put("name", name);
+        data.put("tag", tagMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 删除标签
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.deleteTag(id);
+     * ```
+     * Result:
+     * ```
+     *  {
+     *    "errcode":0,
+     *    "errmsg":"ok"
+     *  }
+     * ```
+     * @param tagId {String} 标签id
+     */
+    public boolean deleteTag (String tagId){
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/tags/delete?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "tags/delete?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> tagMap = new HashMap<String, Object>();
+        tagMap.put("id", tagId);
+        data.put("tag", tagMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 获取标签下粉丝列表
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.getUsersFromTag(tagId,nextOpenId);
+     * ```
+     * Result:
+     * ```
+     *  {
+     *  "count":2,//这次获取的粉丝数量
+     *  "data":{//粉丝列表
+     *    "openid":[
+     *       "ocYxcuAEy30bX0NXmGn4ypqx3tI0",
+     *       "ocYxcuBt0mRugKZ7tGAHPnUaOW7Y"
+     *     ]
+     *   },
+     * ```
+     * @param {String} tagId 标签id
+     * @param {String} nextOpenId 第一个拉取的OPENID，不填默认从头开始拉取
+     */
+    public JsonObject getUsersFromTag (String tagId){
+        return getUsersFromTag(tagId, null);
+    }
+
+    public JsonObject getUsersFromTag (String tagId, String nextOpenId){
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        if(nextOpenId == null){
+            nextOpenId = "";
+        }
+
+        // https://api.weixin.qq.com/cgi-bin/user/tag/get?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "user/tag/get?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("tagid", tagId);
+        data.put("next_openid", nextOpenId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+    /**
+     * 批量为用户打标签
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.batchTagging(openIds,tagId);
+     * ```
+     * Result:
+     * ```
+     *  {
+     *    "errcode":0,
+     *    "errmsg":"ok"
+     *  }
+     * ```
+     * @param {Array} openIds openId列表
+     * @param {String} tagId 标签id
+     */
+    public boolean batchTagging (List<String> openIds, String tagId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        if(openIds == null){
+            openIds = new ArrayList<String>();
+        }
+
+        // https://api.weixin.qq.com/cgi-bin/tags/members/batchtagging?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "tags/members/batchtagging?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("tagid", tagId);
+        data.put("openid_list", openIds);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 批量为用户取消标签
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.batchUnTagging(openIds,tagId);
+     * ```
+     * Result:
+     * ```
+     *  {
+     *    "errcode":0,
+     *    "errmsg":"ok"
+     *  }
+     * ```
+     * @param {Array} openIds openId列表
+     * @param {String} tagId 标签id
+     */
+    public boolean batchUnTagging (List<String> openIds, String tagId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        if(openIds == null){
+            openIds = new ArrayList<String>();
+        }
+
+        // https://api.weixin.qq.com/cgi-bin/tags/members/batchuntagging?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "tags/members/batchuntagging?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("tagid", tagId);
+        data.put("openid_list", openIds);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+
+    };
+
+    /**
+     * 获取用户身上的标签列表
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140837&token=&lang=zh_CN
+     * Examples:
+     * ```
+     * api.getUserTagList(openId);
+     * ```
+     * Result:
+     * ```
+     *  {
+     *    "tagid_list":[//被置上的标签列表 134,2]
+     *   }
+     * ```
+     */
+    public JsonArray getUserTagList (String openId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/tags/getidlist?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "tags/getidlist?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("openid", openId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        JsonArray list = resp.get("tagid_list").getAsJsonArray();
+        return list;
+    }
+
 }
 
