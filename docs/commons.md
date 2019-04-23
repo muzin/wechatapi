@@ -1,10 +1,14 @@
 # 公共API
 
 
+- [getAppid 获取Appid](#)
+- [getAppsecret 获取getAppsecret](#)
 - [getAccessToken 获取accessToken](#getAccessToken)
 - [getLatestTicket 获取最新的票据](#getLatestTicket)
 - [getIp 获取微信IP](#getIp)
 - [uploadPicture 上传图片](#uploadPicture)
+- [getTicket 获取js sdk所需的有效js ticket](#getTicket)
+
 
 ### getAccessToken
 获取accessToken,
@@ -57,3 +61,24 @@ Result:
 ```
 Param: 
 - filepath {String} 文件路径
+
+
+### getTicket
+获取js sdk所需的有效js ticket
+Example:
+```
+api.getTicket(type);
+
+// or
+
+api.getTicket();     // jsapi
+
+
+```
+Result: 
+- `err`, 异常对象
+- `result`, 正常获取时的数据Result:
+- `errcode`, 0为成功
+- `errmsg`, 成功为'ok'，错误则为详细错误信息
+- `ticket`, js sdk有效票据，如：bxLdikRXVbTPdHSM05e5u5sUoXNKd8-41ZO3MhKoyN5OfkWITDGgnr2fwJ0m9E8NYzWKVZvdVtaUgWvsdshFKA
+- `expires_in`, 有效期7200秒，开发者必须在自己的服务全局缓存jsapi_ticket

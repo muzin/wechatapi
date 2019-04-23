@@ -2,6 +2,7 @@
 
 - [uploadNews 上传多媒体文件](#uploadNews)
 - [uploadMPVideo 上传视频素材](#uploadMPVideo)
+- [updoadImage 上传图文消息内的图片获取URL](#updoadImage)
 - [massSend 群发消息](#massSend)
 - [massSendNews 群发图文（news）消息](#massSendNews)
 - [massSendText 群发文字（text）消息](#massSendText)
@@ -85,6 +86,23 @@ Result:
  "created_at":1391857799
 }
 ```
+
+### updoadImage
+上传图文消息内的图片获取URL
+
+详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+
+Examples:
+```
+api.uploadImage('filepath');
+```
+Result:
+```
+{"url":  "http://mmbiz.qpic.cn/mmbiz/gLO17UPS6FS2xsypf378iaNhWacZ1G1UplZYWEYfwvuU6Ont96b1roYsCNFwaRrSaKTPCUdBK9DgEHicsKwWCBRQ/0"}
+```
+Param:
+- {String} filepath 图片文件路径
+
 
 ### massSend
 群发消息，分别有图文（news）、文本(text)、语音（voice）、图片（image）和视频（video）
