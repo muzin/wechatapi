@@ -39,8 +39,6 @@ public class WechatAPI {
 
     private String WXA_PREFIX = "https://api.weixin.qq.com/wxa/";
 
-    private WechatAPIOptions options;
-
     private JsonParser jsonParser;
 
     private Gson gson;
