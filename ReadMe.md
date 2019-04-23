@@ -23,6 +23,7 @@
 - [素材管理](docs/materialManager.md)
 - [摇一摇周边](docs/shake.md)
 - [卡劵管理](docs/card.md)
+- [小程序](docs/miniappcode.md)
 
 ## Installtion
 
@@ -44,6 +45,12 @@ compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.6'
 
 > 如果需要将第三方jar添加到jar包中，去掉`build.gradle`中的`jar`部分的注释。
 
+
+#### 组建jar
+```
+gradle jar
+```
+> 或者，使用idea中gradle可视化工具组建
 
 ## Usage
 
@@ -69,6 +76,7 @@ WechatAPI api = new WechatAPI(appid, appsecret, new TokenStorageResolver() {
     /**
      * 保存token
      * 程序内部每次更新accessToken时，将会通知此方法
+     * 在此时将accessToken持久化
      */
     @Override
     public void saveToken(AccessToken accessToken) {

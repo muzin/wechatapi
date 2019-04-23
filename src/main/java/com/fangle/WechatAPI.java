@@ -9,6 +9,7 @@ import com.fangle.util.HttpUtils;
 import com.google.gson.*;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,8 +38,6 @@ public class WechatAPI {
     private String CUSTOM_SERVICE_PREFIX = "https://api.weixin.qq.com/customservice/";
 
     private String WXA_PREFIX = "https://api.weixin.qq.com/wxa/";
-
-    private WechatAPIOptions options;
 
     private JsonParser jsonParser;
 
@@ -108,6 +107,7 @@ public class WechatAPI {
         this.appsecret = appsecret;
         this.tokenStorageResolver = tokenStorageResolver;
         this.jsonParser = new JsonParser();
+        this.gson = new Gson();
 
         this.ticketStorageResolver = new TicketStorageResolver(new TicketStore()) {
             @Override
@@ -123,19 +123,26 @@ public class WechatAPI {
 
     }
 
+    /**
+     * 设置 tokenStorageResolver
+     * @param tokenStorageResolver
+     * @return
+     */
+    public WechatAPI setTokenStorageResolver(TokenStorageResolver tokenStorageResolver){
+        this.tokenStorageResolver = tokenStorageResolver;
+        return this;
+    }
 
     /**
-     * 用于设置urllib的默认options * Examples:
-     * ```
-     * WechatAPIOptions options = new WechatAPIOptions();
-     * options.put("timeout": 15000)
-     * api.setOpts({timeout: 15000});
-     * ```
-     * @param {Object} opts 默认选项
+     * 设置 ticketStorageResolver
+     * @param ticketStorageResolver
+     * @return
      */
-    public void setOpts(WechatAPIOptions opts) {
-        this.options = opts;
+    public WechatAPI setTicketStorageResolver(TicketStorageResolver ticketStorageResolver){
+        this.ticketStorageResolver = ticketStorageResolver;
+        return this;
     }
+
 
     /*!
      * 根据创建API时传入的appid和appsecret获取access token
@@ -2184,6 +2191,2355 @@ public class WechatAPI {
 
         return resp;
     }
+
+
+
+    /**
+     * 上传多媒体文件，分别有图片（image）、语音（voice）、视频（video）和缩略图（thumb）
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.uploadNews(news);
+     * ```
+     * News:
+     * ```
+     * [
+     *    {
+     *      "thumb_media_id":"qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p",
+     *      "author":"xxx",
+     *      "title":"Happy Day",
+     *      "content_source_url":"www.qq.com",
+     *      "content":"content",
+     *      "digest":"digest",
+     *      "show_cover_pic":"1"
+     *   },
+     *   {
+     *      "thumb_media_id":"qI6_Ze_6PtV7svjolgs-rN6stStuHIjs9_DidOHaj0Q-mwvBelOXCFZiq2OsIU-p",
+     *      "author":"xxx",
+     *      "title":"Happy Day",
+     *      "content_source_url":"www.qq.com",
+     *      "content":"content",
+     *      "digest":"digest",
+     *      "show_cover_pic":"0"
+     *   }
+     *  ]
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "type":"news",
+     *  "media_id":"CsEf3ldqkAYJAU6EJeIkStVDSvffUJ54vqbThMgplD-VJXXof6ctX5fI6-aYyUiQ",
+     *  "created_at":1391857799
+     * }
+     * ```
+     * @param {Object} news 图文消息对象
+     */
+    public JsonObject uploadNews (List<Map<String, Object>> news) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/media/uploadnews?access_token=ACCESS_TOKEN
+        String url = this.PREFIX + "media/uploadnews?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("articles", news);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 将通过上传下载多媒体文件得到的视频media_id变成视频素材
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.uploadMPVideo(opts);
+     * ```
+     * Opts:
+     * ```
+     * {
+     *  "media_id": "rF4UdIMfYK3efUfyoddYRMU50zMiRmmt_l0kszupYh_SzrcW5Gaheq05p_lHuOTQ",
+     *  "title": "TITLE",
+     *  "description": "Description"
+     * }
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "type":"video",
+     *  "media_id":"IhdaAQXuvJtGzwwc0abfXnzeezfO0NgPK6AQYShD8RQYMTtfzbLdBIQkQziv2XJc",
+     *  "created_at":1391857799
+     * }
+     * ```
+     * @param {Object} opts 待上传为素材的视频
+     */
+    public JsonObject uploadMPVideo (Map<String, Object> opts) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://file.api.weixin.qq.com/cgi-bin/media/uploadvideo?access_token=ACCESS_TOKEN
+        String url = this.FILE_SERVER_PREFIX + "media/uploadvideo?access_token=" + accessToken;
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 群发消息，分别有图文（news）、文本(text)、语音（voice）、图片（image）和视频（video）
+     * 详情请见：<https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1481187827_i0l21>
+     * Examples:
+     * ```
+     * api.massSend(opts, receivers);
+     * ```
+     * opts:
+     * ```
+     * {
+     *  "image":{
+     *    "media_id":"123dsdajkasd231jhksad"
+     *  },
+     *  "msgtype":"image"
+     *  "send_ignore_reprint":0
+     * }
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id":34182
+     * }
+     * ```
+     * @param {Object} opts 待发送的数据
+     * @param {String|Array|Boolean} receivers 接收人。一个标签，或者openid列表,或者布尔值是否发送给全部用户
+     * @param {String|Array} clientMsgId 开发者侧群发msgid，长度限制64字节，如不填，则后台默认以群发范围和群发内容的摘要值做为clientmsgid
+     * @param {Int} sendIgnoreReprint 图文消息被判定为转载时，是否继续群发。 1为继续群发（转载），0为停止群发。 该参数默认为0。
+     */
+    public JsonObject massSend (Map<String, Object> opts) {
+        return massSend(opts, true);
+    }
+    public JsonObject massSend (Map<String, Object> opts, Object receivers) {
+        return massSend(opts, receivers, null);
+    }
+    public JsonObject massSend (Map<String, Object> opts, List<String> receivers) {
+        return massSend(opts, receivers, null);
+    }
+    public JsonObject massSend (Map<String, Object> opts, String receivers) {
+        return massSend(opts, receivers, null);
+    }
+    public JsonObject massSend (Map<String, Object> opts, Boolean receivers) {
+        return massSend(opts, receivers, null);
+    }
+    public JsonObject massSend (Map<String, Object> opts, Object receivers, List<String> clientMsgId) {
+        return massSend(opts, receivers, clientMsgId, 0);
+    }
+    public JsonObject massSend (Map<String, Object> opts, List<String> receivers, List<String> clientMsgId) {
+        return massSend(opts, receivers, clientMsgId, 0);
+    }
+    public JsonObject massSend (Map<String, Object> opts, String receivers, List<String> clientMsgId) {
+        return massSend(opts, receivers, clientMsgId, 0);
+    }
+    public JsonObject massSend (Map<String, Object> opts, Boolean receivers, List<String> clientMsgId) {
+        return massSend(opts, receivers, clientMsgId, 0);
+    }
+    public JsonObject massSend (Map<String, Object> opts, Object receivers, List<String> clientMsgId, Integer sendIgnoreReprint) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = null;
+        if (sendIgnoreReprint != null) {
+            opts.put("send_ignore_reprint", sendIgnoreReprint);
+        }
+        if (clientMsgId != null) {
+            opts.put("clientmsgid", clientMsgId);
+        }
+        if (receivers instanceof List) {
+            opts.put("touser", receivers);
+            url = this.PREFIX + "message/mass/send?access_token=" + accessToken;
+        } else {
+            Map<String, Object> filter = new HashMap<String, Object>();
+            if (receivers instanceof Boolean) {
+                filter.put("is_to_all", receivers);
+            } else if(receivers instanceof String) {
+                filter.put("tag_id", receivers);
+            } else {
+                filter.put("is_to_all", true);
+            }
+            url = this.PREFIX + "message/mass/sendall?access_token=" + accessToken;
+        }
+        // https://api.weixin.qq.com/cgi-bin/message/mass/sendall?access_token=ACCESS_TOKEN
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 群发图文（news）消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.massSendNews(mediaId, receivers);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id":34182
+     * }
+     * ```
+     * @param {String} mediaId 图文消息的media id
+     * @param {String|Array|Boolean} receivers 接收人。一个组，或者openid列表, 或者true（群发给所有人）
+     * @param {String|Array} clientMsgId 开发者侧群发msgid，长度限制64字节，如不填，则后台默认以群发范围和群发内容的摘要值做为clientmsgid
+     * @param {Int} sendIgnoreReprint 图文消息被判定为转载时，是否继续群发。 1为继续群发（转载），0为停止群发。 该参数默认为0。
+     */
+    public JsonObject massSendNews (String mediaId, Object receivers, List<String> clientMsgId, int sendIgnoreReprint) {
+        Map<String, Object> opts = new HashMap<String, Object>();
+            Map<String, Object> mpnews = new HashMap<String, Object>();
+            mpnews.put("media_id", mediaId);
+        opts.put("mpnews", mpnews);
+        opts.put("msgtype", "mpnews");
+        return this.massSend(opts, receivers, clientMsgId, sendIgnoreReprint);
+    };
+
+    /**
+     * 群发文字（text）消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.massSendText(content, receivers);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id":34182
+     * }
+     * ```
+     * @param {String} content 文字消息内容
+     * @param {String|Array} clientMsgId 开发者侧群发msgid，长度限制64字节，如不填，则后台默认以群发范围和群发内容的摘要值做为clientmsgid
+     * @param {String|Array} receivers 接收人。一个组，或者openid列表
+     */
+    public JsonObject massSendText (String content, Object receivers, List<String> clientMsgId) {
+        Map<String, Object> opts = new HashMap<String, Object>();
+            Map<String, Object> text = new HashMap<String, Object>();
+            text.put("content", content);
+        opts.put("text", text);
+        opts.put("msgtype", "text");
+        return this.massSend(opts, receivers, clientMsgId);
+    };
+
+    /**
+     * 群发声音（voice）消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.massSendVoice(media_id, receivers);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id":34182
+     * }
+     * ```
+     * @param {String} mediaId 声音media id
+     * @param {String|Array} clientMsgId 开发者侧群发msgid，长度限制64字节，如不填，则后台默认以群发范围和群发内容的摘要值做为clientmsgid
+     * @param {String|Array} receivers 接收人。一个组，或者openid列表
+     */
+    public JsonObject massSendVoice (String mediaId, Object receivers, List<String> clientMsgId) {
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> voice = new HashMap<String, Object>();
+        voice.put("media_id", mediaId);
+        opts.put("voice", voice);
+        opts.put("msgtype", "voice");
+        return this.massSend(opts, receivers, clientMsgId);
+    };
+
+    /**
+     * 群发图片（image）消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.massSendImage(media_id, receivers);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id":34182
+     * }
+     * ```
+     * @param {String} mediaId 图片media id
+     * @param {String|Array} clientMsgId 开发者侧群发msgid，长度限制64字节，如不填，则后台默认以群发范围和群发内容的摘要值做为clientmsgid
+     * @param {String|Array} receivers 接收人。一个组，或者openid列表
+     */
+    public JsonObject massSendImage (String mediaId, Object receivers, List<String> clientMsgId) {
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> image = new HashMap<String, Object>();
+        image.put("media_id", mediaId);
+        opts.put("image", image);
+        opts.put("msgtype", "image");
+        return this.massSend(opts, receivers, clientMsgId);
+    };
+
+    /**
+     * 群发视频（video）消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.massSendVideo(mediaId, receivers);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id":34182
+     * }
+     * ```
+     * @param {String} mediaId 视频media id
+     * @param {String|Array} clientMsgId 开发者侧群发msgid，长度限制64字节，如不填，则后台默认以群发范围和群发内容的摘要值做为clientmsgid
+     * @param {String|Array} receivers 接收人。一个组，或者openid列表
+     */
+    public JsonObject massSendVideo (String mediaId, Object receivers, List<String> clientMsgId) {
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> mpvideo = new HashMap<String, Object>();
+        mpvideo.put("media_id", mediaId);
+        opts.put("mpvideo", mpvideo);
+        opts.put("msgtype", "mpvideo");
+        return this.massSend(opts, receivers, clientMsgId);
+    };
+
+    /**
+     * 群发视频（video）消息，直接通过上传文件得到的media id进行群发（自动生成素材）
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.massSendMPVideo(data, receivers);
+     * ```
+     * Data:
+     * ```
+     * {
+     *  "media_id": "rF4UdIMfYK3efUfyoddYRMU50zMiRmmt_l0kszupYh_SzrcW5Gaheq05p_lHuOTQ",
+     *  "title": "TITLE",
+     *  "description": "Description"
+     * }
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id":34182
+     * }
+     * ```
+     * @param {Object} data 视频数据
+     * @param {String|Array} clientMsgId 开发者侧群发msgid，长度限制64字节，如不填，则后台默认以群发范围和群发内容的摘要值做为clientmsgid
+     * @param {String|Array} receivers 接收人。一个组，或者openid列表
+     */
+    public JsonObject massSendMPVideo (Map<String, Object> data, Object receivers, List<String> clientMsgId) throws Exception {
+        // 自动帮转视频的media_id
+        JsonObject result = this.uploadMPVideo(data);
+        if(!result.has("media_id")){
+            throw new Exception("upload mpvideo faild");
+        }
+        String mediaId = result.get("media_id").getAsString();
+        return this.massSendVideo(mediaId, receivers, clientMsgId);
+    };
+
+    /**
+     * 删除群发消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.deleteMass(message_id);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"ok"
+     * }
+     * ```
+     * @param {String} messageId 待删除群发的消息id
+     */
+    public boolean deleteMass  (String messageId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "message/mass/delete?access_token=" + accessToken;
+
+        Map<String, Object> opts = new HashMap<String, Object>();
+        opts.put("msg_id", messageId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    };
+
+    /**
+     * 预览接口，预览图文消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.previewNews(openid, mediaId);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id": 34182
+     * }
+     * ```
+     * @param {String} openid 用户openid
+     * @param {String} mediaId 图文消息mediaId
+     */
+    public JsonObject previewNews (String openid, String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "message/mass/preview?access_token=" + accessToken;
+
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> mpnews = new HashMap<String, Object>();
+        mpnews.put("media_id", mediaId);
+        opts.put("mpnews", mpnews);
+        opts.put("msgtype", "mpnews");
+        opts.put("touser", openid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 预览接口，预览文本消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.previewText(openid, content);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id": 34182
+     * }
+     * ```
+     * @param {String} openid 用户openid
+     * @param {String} content 文本消息
+     */
+    public JsonObject previewText (String openid, String content) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "message/mass/preview?access_token=" + accessToken;
+
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> text = new HashMap<String, Object>();
+        text.put("content", content);
+        opts.put("text", text);
+        opts.put("msgtype", "text");
+        opts.put("touser", openid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 预览接口，预览语音消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.previewVoice(openid, mediaId);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id": 34182
+     * }
+     * ```
+     * @param {String} openid 用户openid
+     * @param {String} mediaId 语音mediaId
+     */
+    public JsonObject previewVoice (String openid, String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "message/mass/preview?access_token=" + accessToken;
+
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> voice = new HashMap<String, Object>();
+        voice.put("media_id", mediaId);
+        opts.put("voice", voice);
+        opts.put("msgtype", "voice");
+        opts.put("touser", openid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 预览接口，预览图片消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.previewImage(openid, mediaId);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id": 34182
+     * }
+     * ```
+     * @param {String} openid 用户openid
+     * @param {String} mediaId 图片mediaId
+     */
+    public JsonObject previewImage (String openid, String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "message/mass/preview?access_token=" + accessToken;
+
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> image = new HashMap<String, Object>();
+        image.put("media_id", mediaId);
+        opts.put("image", image);
+        opts.put("msgtype", "image");
+        opts.put("touser", openid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 预览接口，预览视频消息
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.previewVideo(openid, mediaId);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "errcode":0,
+     *  "errmsg":"send job submission success",
+     *  "msg_id": 34182
+     * }
+     * ```
+     * @param {String} openid 用户openid
+     * @param {String} mediaId 视频mediaId
+     */
+    public JsonObject previewVideo (String openid, String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "message/mass/preview?access_token=" + accessToken;
+
+        Map<String, Object> opts = new HashMap<String, Object>();
+        Map<String, Object> mpvideo = new HashMap<String, Object>();
+        mpvideo.put("media_id", mediaId);
+        opts.put("mpvideo", mpvideo);
+        opts.put("msgtype", "mpvideo");
+        opts.put("touser", openid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 查询群发消息状态
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.getMassMessageStatus(messageId);
+     * ```
+     * Result:
+     * ```
+     * {
+     *  "msg_id":201053012,
+     *  "msg_status":"SEND_SUCCESS"
+     * }
+     * ```
+     * @param {String} messageId 消息ID
+     */
+    public JsonObject getMassMessageStatus (String messageId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "message/mass/get?access_token=" + accessToken;
+
+        Map<String, Object> opts = new HashMap<String, Object>();
+        opts.put("msg_id", messageId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+
+
+
+
+    /**
+     * 上传永久素材，分别有图片（image）、语音（voice）、和缩略图（thumb）
+     * 详情请见：<http://mp.weixin.qq.com/wiki/14/7e6c03263063f4813141c3e17dd4350a.html>
+     * Examples:
+     * ```
+     * api.uploadMaterial('filepath', type);
+     * ```
+     * Result:
+     * ```
+     * {"type":"TYPE","media_id":"MEDIA_ID","created_at":123456789}
+     * ```
+     * Shortcut:
+     * - `uploadImageMaterial(filepath);`
+     * - `uploadVoiceMaterial(filepath);`
+     * - `uploadThumbMaterial(filepath);`
+     * @param {String} filepath 文件路径
+     * @param {String} type 媒体类型，可用值有image、voice、video、thumb
+     */
+    public JsonObject uploadMaterial (String filepath, MaterialType type) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/add_material?access_token=" + accessToken + "&type=" + type;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("media", new File(filepath));
+
+        String respStr = HttpUtils.sendPostFormDataRequest(url, data);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+
+    };
+
+    public JsonObject uploadImageMaterial (String filepath) {
+        return uploadMaterial(filepath, MaterialType.image);
+    }
+
+    public JsonObject uploadVoiceMaterial (String filepath) {
+        return uploadMaterial(filepath, MaterialType.voice);
+    }
+
+    public JsonObject uploadThumbMaterial (String filepath) {
+        return uploadMaterial(filepath, MaterialType.thumb);
+    }
+
+    /**
+     * 上传永久素材，视频（video）
+     * 详情请见：<http://mp.weixin.qq.com/wiki/14/7e6c03263063f4813141c3e17dd4350a.html>
+     * Examples:
+     * ```
+     * var description = {
+     *   "title":VIDEO_TITLE,
+     *   "introduction":INTRODUCTION
+     * };
+     * api.uploadVideoMaterial('filepath', description);
+     * ```
+     *
+     * Result:
+     * ```
+     * {"media_id":"MEDIA_ID"}
+     * ```
+     * @param {String} filepath 视频文件路径
+     * @param {Object} description 描述
+     */
+    public JsonObject uploadVideoMaterial (String filepath, Map<String, Object> description) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/add_material?access_token=" + accessToken + "&type=video";
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("media", new File(filepath));
+        data.put("description", gson.toJson(description));
+
+        String respStr = HttpUtils.sendPostFormDataRequest(url, data);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 新增永久图文素材
+     *
+     * News:
+     * ```
+     * [
+     *    {
+     *      "title": TITLE,
+     *      "thumb_media_id": THUMB_MEDIA_ID,
+     *      "author": AUTHOR,
+     *      "digest": DIGEST,
+     *      "show_cover_pic": SHOW_COVER_PIC(0 / 1),
+     *      "content": CONTENT,
+     *      "content_source_url": CONTENT_SOURCE_URL
+     *    },
+     *    //若新增的是多图文素材，则此处应还有几段articles结构
+     *  ]
+     * ```
+     * Examples:
+     * ```
+     * api.uploadNewsMaterial(news);
+     * ```
+     *
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     * @param {Object} news 图文对象
+     */
+    public boolean uploadNewsMaterial (List<Map<String, Object>> news) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/add_news?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("articles", news);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 更新永久图文素材
+     * News:
+     * ```
+     * {
+     *  "media_id":MEDIA_ID,
+     *  "index":INDEX,
+     *  "articles": [
+     *    {
+     *      "title": TITLE,
+     *      "thumb_media_id": THUMB_MEDIA_ID,
+     *      "author": AUTHOR,
+     *      "digest": DIGEST,
+     *      "show_cover_pic": SHOW_COVER_PIC(0 / 1),
+     *      "content": CONTENT,
+     *      "content_source_url": CONTENT_SOURCE_URL
+     *    },
+     *    //若新增的是多图文素材，则此处应还有几段articles结构
+     *  ]
+     * }
+     * ```
+     * Examples:
+     * ```
+     * api.uploadNewsMaterial(news);
+     * ```
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     * @param {Object} news 图文对象
+     */
+    public boolean updateNewsMaterial (Map<String, Object> news) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/add_news?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(news));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 根据媒体ID获取永久素材
+     * 详情请见：<http://mp.weixin.qq.com/wiki/4/b3546879f07623cb30df9ca0e420a5d0.html>
+     * Examples:
+     * ```
+     * api.getMaterial('media_id');
+     * ```
+     *
+     * - `result`, 调用正常时得到的文件Buffer对象
+     * - `res`, HTTP响应对象
+     * @param {String} mediaId 媒体文件的ID
+     */
+    public JsonObject getMaterial (String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/get_material?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("media_id", mediaId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+    /**
+     * 删除永久素材
+     * 详情请见：<http://mp.weixin.qq.com/wiki/5/e66f61c303db51a6c0f90f46b15af5f5.html>
+     * Examples:
+     * ```
+     * api.removeMaterial('media_id');
+     * ```
+     *
+     * - `result`, 调用正常时得到的文件Buffer对象
+     * - `res`, HTTP响应对象
+     * @param {String} mediaId 媒体文件的ID
+     */
+    public JsonObject removeMaterial (String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/del_material?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("media_id", mediaId);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+    /**
+     * 获取素材总数
+     * 详情请见：<http://mp.weixin.qq.com/wiki/16/8cc64f8c189674b421bee3ed403993b8.html>
+     * Examples:
+     * ```
+     * api.getMaterialCount();
+     * ```
+     *
+     * - `result`, 调用正常时得到的文件Buffer对象
+     * - `res`, HTTP响应对象 * Result:
+     * ```
+     * {
+     *  "voice_count":COUNT,
+     *  "video_count":COUNT,
+     *  "image_count":COUNT,
+     *  "news_count":COUNT
+     * }
+     * ```
+     */
+    public JsonObject getMaterialCount () {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/get_materialcount?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(url);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+    /**
+     * 获取永久素材列表
+     * 详情请见：<http://mp.weixin.qq.com/wiki/12/2108cd7aafff7f388f41f37efa710204.html>
+     * Examples:
+     * ```
+     * api.getMaterials(type, offset, count);
+     * ```
+     *
+     * - `result`, 调用正常时得到的文件Buffer对象
+     * - `res`, HTTP响应对象 * Result:
+     * ```
+     * {
+     *  "total_count": TOTAL_COUNT,
+     *  "item_count": ITEM_COUNT,
+     *  "item": [{
+     *    "media_id": MEDIA_ID,
+     *    "name": NAME,
+     *    "update_time": UPDATE_TIME
+     *  },
+     *  //可能会有多个素材
+     *  ]
+     * }
+     * ```
+     * @param {String} type 素材的类型，图片（image）、视频（video）、语音 （voice）、图文（news）
+     * @param {Number} offset 从全部素材的该偏移位置开始返回，0表示从第一个素材 返回
+     * @param {Number} count 返回素材的数量，取值在1到20之间
+     */
+    public JsonObject getMaterials (String type, int offset, int count) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "material/batchget_material?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("type", type);
+        data.put("offset", offset);
+        data.put("count", count);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+    /**
+     * 发送语义理解请求
+     * 详细请看：http://mp.weixin.qq.com/wiki/index.php?title=%E8%AF%AD%E4%B9%89%E7%90%86%E8%A7%A3 * Opts:
+     * ```
+     * {
+     *   "query":"查一下明天从北京到上海的南航机票",
+     *   "city":"北京",
+     *   "category": "flight,hotel"
+     * }
+     * ```
+     * Examples:
+     * ```
+     * api.semantic(uid, opts);
+     * ```
+     * Result:
+     * ```
+     * {
+     *   "errcode":0,
+     *   "query":"查一下明天从北京到上海的南航机票",
+     *   "type":"flight",
+     *   "semantic":{
+     *       "details":{
+     *           "start_loc":{
+     *               "type":"LOC_CITY",
+     *               "city":"北京市",
+     *               "city_simple":"北京",
+     *               "loc_ori":"北京"
+     *               },
+     *           "end_loc": {
+     *               "type":"LOC_CITY",
+     *               "city":"上海市",
+     *               "city_simple":"上海",
+     *               "loc_ori":"上海"
+     *             },
+     *           "start_date": {
+     *               "type":"DT_ORI",
+     *               "date":"2014-03-05",
+     *               "date_ori":"明天"
+     *             },
+     *          "airline":"中国南方航空公司"
+     *       },
+     *   "intent":"SEARCH"
+     * }
+     * ```
+     * @param {String} openid 用户ID
+     * @param {Object} opts 查询条件
+     */
+    public JsonObject semantic (String openid, Map<String, Object> opts) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/semantic/semproxy/search?access_token=YOUR_ACCESS_TOKEN
+        String url = "https://api.weixin.qq.com/semantic/semproxy/search?access_token=" + accessToken;
+        opts.put("appid", this.appid);
+        opts.put("uid", openid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(opts));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+
+
+
+    /**
+     * 获取小程序二维码，适用于需要的码数量较少的业务场景
+     * https://developers.weixin.qq.com/miniprogram/dev/api/createWXAQRCode.html
+     * Examples:
+     * ```
+     * String path = 'index?foo=bar'; // 小程序页面路径
+     * api.createWXAQRCode(path, width);
+     * ```
+     * @param {String} path 扫码进入的小程序页面路径，最大长度 128 字节，不能为空
+     * @param {String} width 二维码的宽度，单位 px。最小 280px，最大 1280px
+     */
+    public JsonObject createWXAQRCode (String path, int width) throws Exception {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        if(width < 280 || width > 1280){
+            if(width < 280){
+                throw new Exception("the value of \"width\" is too small");
+            }
+            if(width < 1280){
+                throw new Exception("the value of \"width\" is too large");
+            }
+        }
+
+        String url = this.PREFIX + "wxaapp/createwxaqrcode?access_token=" + accessToken;
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("path", path);
+        data.put("width", width);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+
+    /**
+     * 获取小程序码，适用于需要的码数量较少的业务场景
+     * https://developers.weixin.qq.com/miniprogram/dev/api/getWXACode.html
+     * Examples:
+     * ```
+     * var path = 'index?foo=bar'; // 小程序页面路径
+     * api.getWXACode(path);
+     * ```
+     * @param {String} path 扫码进入的小程序页面路径，最大长度 128 字节，不能为空
+     * @param {String} width 二维码的宽度，单位 px。最小 280px，最大 1280px
+     * @param {String} auto_color 自动配置线条颜色，如果颜色依然是黑色，则说明不建议配置主色调
+     * @param {Object} line_color auto_color 为 false 时生效，使用 rgb 设置颜色 例如 {"r":"xxx","g":"xxx","b":"xxx"} 十进制表示
+     * @param {Bool} is_hyaline 是否需要透明底色，为 true 时，生成透明底色的小程序码
+     */
+    public JsonObject getWXACode (String path, int width, boolean auto_color, Map<String, Object> line_color, boolean is_hyaline) {
+
+        if(width < 280 || width > 1280){
+            width = 430;
+        }
+
+        if(line_color == null){
+            line_color = new HashMap<String, Object>();
+            line_color.put("r", 0);
+            line_color.put("g", 0);
+            line_color.put("b", 0);
+        }
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.WXA_PREFIX + "getwxacode?access_token=" + accessToken;
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("path", path);
+        data.put("width", width);
+        data.put("auto_color", auto_color);
+        data.put("line_color", line_color);
+        data.put("is_hyaline", is_hyaline);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+
+    /**
+     * 获取小程序码，适用于需要的码数量极多的业务场景
+     * https://developers.weixin.qq.com/miniprogram/dev/api/getWXACodeUnlimit.html
+     * Examples:
+     * ```
+     * var scene = 'foo=bar';
+     * var page = 'pages/index/index'; // 小程序页面路径
+     * api.getWXACodeUnlimit(scene, page);
+     * ```
+     * @param {String} scene 最大32个可见字符，只支持数字，大小写英文以及部分特殊字符：!#$&'()*+,/:;=?@-._~，其它字符请自行编码为合法字符（因不支持%，中文无法使用 urlencode 处理，请使用其他编码方式）
+     * @param {String} page 必须是已经发布的小程序存在的页面（否则报错），例如 pages/index/index, 根路径前不要填加 /,不能携带参数（参数请放在scene字段里），如果不填写这个字段，默认跳主页面
+     * @param {String} width 二维码的宽度，单位 px。最小 280px，最大 1280px
+     * @param {String} auto_color 自动配置线条颜色，如果颜色依然是黑色，则说明不建议配置主色调
+     * @param {Object} line_color auto_color 为 false 时生效，使用 rgb 设置颜色 例如 {"r":"xxx","g":"xxx","b":"xxx"} 十进制表示
+     * @param {Bool} is_hyaline 是否需要透明底色，为 true 时，生成透明底色的小程序码
+     */
+    public JsonObject getWXACodeUnlimit (String scene, String page, int width, boolean auto_color, Map<String, Object> line_color, boolean is_hyaline) {
+
+        if(width < 280 || width > 1280){
+            width = 430;
+        }
+
+        if(line_color == null){
+            line_color = new HashMap<String, Object>();
+            line_color.put("r", 0);
+            line_color.put("g", 0);
+            line_color.put("b", 0);
+        }
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.WXA_PREFIX + "getwxacodeunlimit?access_token=" + accessToken;
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("scene", scene);
+        data.put("page", page);
+        data.put("width", width);
+        data.put("auto_color", auto_color);
+        data.put("line_color", line_color);
+        data.put("is_hyaline", is_hyaline);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+
+    /**
+     * 上传图片
+     * 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=微信小店接口>
+     * Examples:
+     * ```
+     * api.uploadPicture('/path/to/your/img.jpg');
+     * ```
+     *
+     * Result:
+     * ```
+     * {
+     *  "errcode": 0,
+     *  "errmsg": "success"
+     *  "image_url": "http://mmbiz.qpic.cn/mmbiz/4whpV1VZl2ibl4JWwwnW3icSJGqecVtRiaPxwWEIr99eYYL6AAAp1YBo12CpQTXFH6InyQWXITLvU4CU7kic4PcoXA/0"
+     * }
+     * ```
+     * @param {String} filepath 文件路径
+     */
+     public JsonObject uploadPicture (String filepath) {
+
+         AccessToken token = this.ensureAccessToken();
+         String accessToken = token.getAccessToken();
+
+         File file = new File(filepath);
+         String basename = file.getName();
+
+         String url = this.MERCHANT_PREFIX + "common/upload_img?access_token=" +
+                 accessToken + "&filename=" + basename;
+
+         String respStr = HttpUtils.sendPostFileRequest(url, file);
+         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+         return resp;
+     }
+
+
+
+
+
+    /**
+     * 设置所属行业
+     * Examples:
+     * ```
+     * Object industryIds = {
+     *  "industry_id1":'1',
+     *  "industry_id2":"4"
+     * };
+     * api.setIndustry(industryIds);
+     * ```
+     * @param {Object} industryIds 公众号模板消息所属行业编号
+     */
+    public JsonObject setIndustry (Map<String, Object> industryIds) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "template/api_set_industry?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(industryIds));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 获得模板ID
+     * Examples:
+     * ```
+     * var templateIdShort = 'TM00015';
+     * api.addTemplate(templateIdShort);
+     * ```
+     * @param {String} templateIdShort 模板库中模板的编号，有“TM**”和“OPENTMTM**”等形式
+     */
+    public JsonObject addTemplate (String templateIdShort) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "template/api_add_template?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("template_id_short", templateIdShort);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 发送模板消息
+     * Examples:
+     * ```
+     * String templateId: '模板id';
+     * // URL置空，则在发送后,点击模板消息会进入一个空白页面（ios）, 或无法点击（android）
+     * String url: 'http://weixin.qq.com/download';
+     * String topcolor = '#FF0000'; // 顶部颜色
+     * Object data = {
+     *  user:{
+     *    "value":'黄先生',
+     *    "color":"#173177"
+     *  }
+     * };
+     * api.sendTemplate('openid', templateId, url, topColor, data);
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} templateId 模板ID
+     * @param {String} url URL置空，则在发送后，点击模板消息会进入一个空白页面（ios），或无法点击（android）
+     * @param {String} topColor 字体颜色
+     * @param {Object} data 渲染模板的数据
+     * @param {Object} miniprogram 跳转小程序所需数据 {appid, pagepath}
+     */
+    public JsonObject sendTemplate (String openid,
+                                    String templateId,
+                                    String url,
+                                    String topColor,
+                                    Map<String, Object> data,
+                                    Map<String, Object> miniprogram) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/template/send?access_token=" + accessToken;
+
+        Map<String, Object> template = new HashMap<String, Object>();
+        data.put("touser", openid);
+        data.put("template_id", templateId);
+        data.put("url", url);
+        data.put("miniprogram", miniprogram);
+        data.put("color", topColor);
+        data.put("data", data);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(template));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    /**
+     * 发送模板消息支持小程序
+     * Examples:
+     * ```
+     * String templateId = '模板id';
+     * String page = 'index?foo=bar'; // 小程序页面路径
+     * String formId = '提交表单id';
+     * String color = '#FF0000'; // 字体颜色
+     * Object data = {
+     *  keyword1: {
+     *    "value":'黄先生',
+     *    "color":"#173177"
+     *  }
+     * var emphasisKeyword = 'keyword1.DATA'
+     * };
+     * api.sendMiniProgramTemplate('openid', templateId, page, formId, data, color, emphasisKeyword);
+     * ```
+     * @param {String} openid 接收者（用户）的 openid
+     * @param {String} templateId 所需下发的模板消息的id
+     * @param {String} page 点击模板卡片后的跳转页面，仅限本小程序内的页面。支持带参数,（示例index?foo=bar）。该字段不填则模板无跳转
+     * @param {String} formId 表单提交场景下，为 submit 事件带上的 formId；支付场景下，为本次支付的 prepay_id
+     * @param {Object} data 模板内容，不填则下发空模板
+     * @param {String} color 模板内容字体的颜色，不填默认黑色 【废弃】
+     * @param {String} emphasisKeyword 模板需要放大的关键词，不填则默认无放大
+     */
+    public JsonObject sendMiniProgramTemplate (String openid,
+                                               String templateId,
+                                               String page,
+                                               String formId,
+                                               Map<String, Object> data,
+                                               String color,
+                                               String emphasisKeyword) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/wxopen/template/send?access_token=" + accessToken;
+
+        Map<String, Object> template = new HashMap<String, Object>();
+        data.put("touser", openid);
+        data.put("template_id", templateId);
+        data.put("page", page);
+        data.put("form_id", formId);
+        data.put("data", data);
+        data.put("color", color);
+        data.put("emphasis_keyword", emphasisKeyword);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(template));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+
+    /**
+     * 新增临时素材，分别有图片（image）、语音（voice）、视频（video）和缩略图（thumb）
+     * 详情请见：<http://mp.weixin.qq.com/wiki/5/963fc70b80dc75483a271298a76a8d59.html>
+     * Examples:
+     * ```
+     * api.uploadMedia('filepath', type);
+     * ```
+     *
+     * Result:
+     * ```
+     * {"type":"TYPE","media_id":"MEDIA_ID","created_at":123456789}
+     * ```
+     * Shortcut:
+     * - `api.uploadImageMedia(filepath);`
+     * - `api.uploadVoiceMedia(filepath);`
+     * - `api.uploadVideoMedia(filepath);`
+     * - `api.uploadThumbMedia(filepath);`
+     *
+     * @param {String|InputStream} filepath 文件路径/文件Buffer数据
+     * @param {String} type 媒体类型，可用值有image、voice、video、thumb
+     */
+    public JsonObject uploadMedia (Object filepath, String type) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "media/upload?access_token=" + accessToken + "&type=" + type;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+
+        if(filepath instanceof String) {
+            String filepathStr = (String) filepath;
+            data.put("media", new File(filepathStr));
+        }else if(filepath instanceof InputStream){
+            data.put("media", filepath);
+        }
+
+        String respStr = HttpUtils.sendPostFormDataRequest(apiUrl, data);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+    public JsonObject uploadImageMedia (Object filepath) {
+        return uploadMedia(filepath, "image");
+    }
+    public JsonObject uploadVoiceMedia (Object filepath) {
+        return uploadMedia(filepath, "voice");
+    }
+    public JsonObject uploadVideoMedia (Object filepath) {
+        return uploadMedia(filepath, "video");
+    }
+    public JsonObject uploadThumbMedia (Object filepath) {
+        return uploadMedia(filepath, "thumb");
+    }
+
+    /**
+     * 获取临时素材
+     * 详情请见：<http://mp.weixin.qq.com/wiki/11/07b6b76a6b6e8848e855a435d5e34a5f.html>
+     * Examples:
+     * ```
+     * api.getMedia('media_id');
+     * ```
+     * - `result`, 调用正常时得到的文件Buffer对象
+     * - `res`, HTTP响应对象
+     * @param {String} mediaId 媒体文件的ID
+     */
+    public JsonObject getMedia (String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "media/get?access_token=" + accessToken + "&media_id=" + mediaId;
+
+        String respStr = HttpUtils.sendGetRequest(url);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+    /**
+     * 上传图文消息内的图片获取URL
+     * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>
+     * Examples:
+     * ```
+     * api.uploadImage('filepath');
+     * ```
+     * Result:
+     * ```
+     * {"url":  "http://mmbiz.qpic.cn/mmbiz/gLO17UPS6FS2xsypf378iaNhWacZ1G1UplZYWEYfwvuU6Ont96b1roYsCNFwaRrSaKTPCUdBK9DgEHicsKwWCBRQ/0"}
+     * ```
+     * @param {String} filepath 图片文件路径
+     */
+    public JsonObject uploadImage (String filepath) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "media/uploadimg?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("media", new File(filepath));
+
+        String respStr = HttpUtils.sendPostFormDataRequest(apiUrl, data);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    }
+
+
+    /**
+     * 创建自定义菜单
+     * 详细请看：http://mp.weixin.qq.com/wiki/index.php?title=自定义菜单创建接口 * Menu:
+     * ```
+     * {
+     *  "button":[
+     *    {
+     *      "type":"click",
+     *      "name":"今日歌曲",
+     *      "key":"V1001_TODAY_MUSIC"
+     *    },
+     *    {
+     *      "name":"菜单",
+     *      "sub_button":[
+     *        {
+     *          "type":"view",
+     *          "name":"搜索",
+     *          "url":"http://www.soso.com/"
+     *        },
+     *        {
+     *          "type":"click",
+     *          "name":"赞一下我们",
+     *          "key":"V1001_GOOD"
+     *        }]
+     *      }]
+     *    }
+     *  ]
+     * }
+     * ```
+     * Examples:
+     * ```
+     * var result = await api.createMenu(menu);
+     * ```
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     * @param {Object} menu 菜单对象
+     */
+    public boolean createMenu (Map<String, Object> menu) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "menu/create?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(menu));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else {
+            return false;
+        }
+    };
+
+    /**
+     * 获取菜单
+     * 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=自定义菜单查询接口> * Examples:
+     * ```
+     * var result = await api.getMenu();
+     * ```
+     * Result:
+     * ```
+     * // 结果示例
+     * {
+     *  "menu": {
+     *    "button":[
+     *      {"type":"click","name":"今日歌曲","key":"V1001_TODAY_MUSIC","sub_button":[]},
+     *      {"type":"click","name":"歌手简介","key":"V1001_TODAY_SINGER","sub_button":[]},
+     *      {"name":"菜单","sub_button":[
+     *        {"type":"view","name":"搜索","url":"http://www.soso.com/","sub_button":[]},
+     *        {"type":"view","name":"视频","url":"http://v.qq.com/","sub_button":[]},
+     *        {"type":"click","name":"赞一下我们","key":"V1001_GOOD","sub_button":[]}]
+     *      }
+     *    ]
+     *  }
+     * }
+     * ```
+     */
+    public JsonObject getMenu () {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "menu/get?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(apiUrl);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        JsonObject menu = resp.get("menu").getAsJsonObject();
+        return menu;
+    };
+
+    /**
+     * 删除自定义菜单
+     * 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=自定义菜单删除接口>
+     * Examples:
+     * ```
+     * var result = await api.removeMenu();
+     * ```
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     */
+    public boolean removeMenu () {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "menu/delete?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(apiUrl);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errcode = resp.get("errcode").getAsInt();
+        if(errcode == 0){
+            return true;
+        }else {
+            return false;
+        }
+    };
+
+    /**
+     * 获取自定义菜单配置
+     * 详细请看：<http://mp.weixin.qq.com/wiki/17/4dc4b0514fdad7a5fbbd477aa9aab5ed.html>
+     * Examples:
+     * ```
+     * var result = await api.getMenuConfig();
+     * ```
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     */
+    public JsonObject getMenuConfig () {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "get_current_selfmenu_info?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(apiUrl);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+    /**
+     * 创建个性化自定义菜单
+     * 详细请看：http://mp.weixin.qq.com/wiki/0/c48ccd12b69ae023159b4bfaa7c39c20.html * Menu:
+     * ```
+     * {
+     *  "button":[
+     *  {
+     *      "type":"click",
+     *      "name":"今日歌曲",
+     *      "key":"V1001_TODAY_MUSIC"
+     *  },
+     *  {
+     *    "name":"菜单",
+     *    "sub_button":[
+     *    {
+     *      "type":"view",
+     *      "name":"搜索",
+     *      "url":"http://www.soso.com/"
+     *    },
+     *    {
+     *      "type":"view",
+     *      "name":"视频",
+     *      "url":"http://v.qq.com/"
+     *    },
+     *    {
+     *      "type":"click",
+     *      "name":"赞一下我们",
+     *      "key":"V1001_GOOD"
+     *    }]
+     * }],
+     * "matchrule":{
+     *  "group_id":"2",
+     *  "sex":"1",
+     *  "country":"中国",
+     *  "province":"广东",
+     *  "city":"广州",
+     *  "client_platform_type":"2"
+     *  }
+     * }
+     * ```
+     * Examples:
+     * ```
+     * var result = await api.addConditionalMenu(menu);
+     * ```
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     * @param {Object} menu 菜单对象
+     */
+    public boolean addConditionalMenu (Map<String, Object> menu) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/menu/addconditional?access_token=ACCESS_TOKEN
+        String apiUrl = this.PREFIX + "menu/addconditional?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(menu));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    };
+
+    /**
+     * 删除个性化自定义菜单
+     * 详细请看：http://mp.weixin.qq.com/wiki/0/c48ccd12b69ae023159b4bfaa7c39c20.html * Menu:
+     * ```
+     * {
+     *  "menuid":"208379533"
+     * }
+     * ```
+     * Examples:
+     * ```
+     * var result = await api.delConditionalMenu(menuid);
+     * ```
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     * @param {String} menuid 菜单id
+     */
+    public boolean delConditionalMenu (String menuid) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/menu/delconditional?access_token=ACCESS_TOKEN
+        String apiUrl = this.PREFIX + "menu/delconditional?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("menuid", menuid);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    };
+
+    /**
+     * 测试个性化自定义菜单
+     * 详细请看：http://mp.weixin.qq.com/wiki/0/c48ccd12b69ae023159b4bfaa7c39c20.html * Menu:
+     * ```
+     * {
+     *  "user_id":"nickma"
+     * }
+     * ```
+     * Examples:
+     * ```
+     * var result = await api.tryConditionalMenu(user_id);
+     * ```
+     * Result:
+     * ```
+     * {
+     *    "button": [
+     *        {
+     *            "type": "view",
+     *            "name": "tx",
+     *            "url": "http://www.qq.com/",
+     *            "sub_button": [ ]
+     *        },
+     *        {
+     *            "type": "view",
+     *            "name": "tx",
+     *            "url": "http://www.qq.com/",
+     *            "sub_button": [ ]
+     *        },
+     *        {
+     *            "type": "view",
+     *            "name": "tx",
+     *            "url": "http://www.qq.com/",
+     *            "sub_button": [ ]
+     *        }
+     *    ]
+     * }
+     * ```
+     * @param {String} user_id user_id可以是粉丝的OpenID，也可以是粉丝的微信号。
+     */
+    public JsonObject tryConditionalMenu (String user_id) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // https://api.weixin.qq.com/cgi-bin/menu/trymatch?access_token=ACCESS_TOKEN
+        String apiUrl = this.PREFIX + "menu/trymatch?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("user_id", user_id);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+
+    /**
+     * 客服消息，发送文字消息
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=发送客服消息
+     * Examples:
+     * ```
+     * api.sendText('openid', 'Hello world');
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} text 发送的消息内容
+     */
+    public JsonObject sendText (String openid, String text) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+            Map<String, Object> textMap = new HashMap<String, Object>();
+            textMap.put("content", text);
+        data.put("touser", openid);
+        data.put("msgtype", "text");
+        data.put("text", textMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 客服消息，发送图片消息
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=发送客服消息
+     * Examples:
+     * ```
+     * api.sendImage('openid', 'media_id');
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} mediaId 媒体文件的ID，参见uploadMedia方法
+     */
+    public JsonObject sendImage (String openid, String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> imageMap = new HashMap<String, Object>();
+        imageMap.put("media_id", mediaId);
+        data.put("touser", openid);
+        data.put("msgtype", "image");
+        data.put("image", imageMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+    /**
+     * 客服消息，发送卡券
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=发送客服消息
+     * Examples:
+     * ```
+     * api.sendCard('openid', 'card_id');
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} card_id 卡券的ID
+     */
+    public JsonObject sendCard (String openid, String cardid) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> wxcardMap = new HashMap<String, Object>();
+        wxcardMap.put("card_id", cardid);
+        data.put("touser", openid);
+        data.put("msgtype", "wxcard");
+        data.put("wxcard", wxcardMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+    /**
+     * 客服消息，发送语音消息
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=发送客服消息
+     * Examples:
+     * ```
+     * api.sendVoice('openid', 'media_id');
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} mediaId 媒体文件的ID
+     */
+    public JsonObject sendVoice (String openid, String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> voiceMap = new HashMap<String, Object>();
+        voiceMap.put("media_id", mediaId);
+        data.put("touser", openid);
+        data.put("msgtype", "voice");
+        data.put("voice", voiceMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 客服消息，发送视频消息
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=发送客服消息
+     * Examples:
+     * ```
+     * api.sendVideo('openid', 'media_id', 'thumb_media_id');
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} mediaId 媒体文件的ID
+     * @param {String} thumbMediaId 缩略图文件的ID
+     */
+    public JsonObject sendVideo (String openid, String mediaId, String thumbMediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> videoMap = new HashMap<String, Object>();
+        videoMap.put("media_id", mediaId);
+        videoMap.put("thumb_media_id", thumbMediaId);
+        data.put("touser", openid);
+        data.put("msgtype", "video");
+        data.put("video", videoMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 客服消息，发送音乐消息
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=发送客服消息
+     * Examples:
+     * ```
+     * var music = {
+     *  title: '音乐标题', // 可选
+     *  description: '描述内容', // 可选
+     *  musicurl: 'http://url.cn/xxx', 音乐文件地址
+     *  hqmusicurl: "HQ_MUSIC_URL",
+     *  thumb_media_id: "THUMB_MEDIA_ID"
+     * };
+     * api.sendMusic('openid', music);
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {Object} music 音乐文件
+     */
+    public JsonObject sendMusic (String openid, Map<String, Object> music) {
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("touser", openid);
+        data.put("msgtype", "music");
+        data.put("music", music);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 客服消息，发送图文消息
+     * 详细细节 http://mp.weixin.qq.com/wiki/index.php?title=发送客服消息
+     * Examples:
+     * ```
+     * var articles = [
+     *  {
+     *    "title":"Happy Day",
+     *    "description":"Is Really A Happy Day",
+     *    "url":"URL",
+     *    "picurl":"PIC_URL"
+     *  },
+     *  {
+     *    "title":"Happy Day",
+     *    "description":"Is Really A Happy Day",
+     *    "url":"URL",
+     *    "picurl":"PIC_URL"
+     *  }];
+     * api.sendNews('openid', articles);
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {Array} articles 图文列表
+     */
+    public JsonObject sendNews (String openid, List<Map<String, Object>> articles) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+            Map<String, Object> newsMap = new HashMap<String, Object>();
+            newsMap.put("articles", articles);
+        data.put("touser", openid);
+        data.put("msgtype", "news");
+        data.put("news", newsMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 客服消息，发送图文消息（点击跳转到图文消息页面）
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140547
+     * Examples:
+     * ```
+     * api.sendMpNews('openid', 'mediaId');
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {String} mediaId 图文消息媒体文件的ID
+     */
+    public JsonObject sendMpNews (String openid, String mediaId) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> mpnewsMap = new HashMap<String, Object>();
+        mpnewsMap.put("media_id", mediaId);
+        data.put("touser", openid);
+        data.put("msgtype", "mpnews");
+        data.put("mpnews", mpnewsMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 客服消息，发送小程序卡片（要求小程序与公众号已关联）
+     * 详细细节 https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140547
+     * Examples:
+     * ```
+     * var miniprogram = {
+     *  title: '小程序标题', // 必填
+     *  appid: '小程序appid', // 必填
+     *  pagepath: 'pagepath', // 打开后小程序的地址，可以带query
+     *  thumb_media_id: "THUMB_MEDIA_ID"
+     * };
+     * api.sendMiniProgram('openid', miniprogram);
+     * ```
+     * @param {String} openid 用户的openid
+     * @param {Object} miniprogram 小程序信息
+     */
+    public JsonObject sendMiniProgram (String openid, Map<String, Object> miniprogram) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "message/custom/send?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        data.put("touser", openid);
+        data.put("msgtype", "miniprogrampage");
+        data.put("miniprogrampage", miniprogram);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    };
+
+    /**
+     * 获取自动回复规则
+     * 详细请看：<http://mp.weixin.qq.com/wiki/19/ce8afc8ae7470a0d7205322f46a02647.html>
+     * Examples:
+     * ```
+     * var result = await api.getAutoreply();
+     * ```
+     * Result:
+     * ```
+     * {
+     * "is_add_friend_reply_open": 1,
+     * "is_autoreply_open": 1,
+     * "add_friend_autoreply_info": {
+     *     "type": "text",
+     *     "content": "Thanks for your attention!"
+     * },
+     * "message_default_autoreply_info": {
+     *     "type": "text",
+     *     "content": "Hello, this is autoreply!"
+     * },
+     * "keyword_autoreply_info": {
+     *     "list": [
+     *         {
+     *             "rule_name": "autoreply-news",
+     *             "create_time": 1423028166,
+     *             "reply_mode": "reply_all",
+     *             "keyword_list_info": [
+     *                 {
+     *                     "type": "text",
+     *                     "match_mode": "contain",
+     *                     "content": "news测试"//此处content即为关键词内容
+     *                 }
+     *             ],
+     *             "reply_list_info": [
+     *                 {
+     *                     "type": "news",
+     *                     "news_info": {
+     *                         "list": [
+     *                             {
+     *                                 "title": "it's news",
+     *                                 "author": "jim",
+     *                                 "digest": "it's digest",
+     *                                 "show_cover": 1,
+     *                                 "cover_url": "http://mmbiz.qpic.cn/mmbiz/GE7et87vE9vicuCibqXsX9GPPLuEtBfXfKbE8sWdt2DDcL0dMfQWJWTVn1N8DxI0gcRmrtqBOuwQHeuPKmFLK0ZQ/0",
+     *                                 "content_url": "http://mp.weixin.qq.com/s?__biz=MjM5ODUwNTM3Ng==&mid=203929886&idx=1&sn=628f964cf0c6d84c026881b6959aea8b#rd",
+     *                                 "source_url": "http://www.url.com"
+     *                             }
+     *                         ]
+     *                     }
+     *                 },
+     *                 {
+     *                     ....
+     *                 }
+     *             ]
+     *         },
+     *         {
+     *             "rule_name": "autoreply-voice",
+     *             "create_time": 1423027971,
+     *             "reply_mode": "random_one",
+     *             "keyword_list_info": [
+     *                 {
+     *                     "type": "text",
+     *                     "match_mode": "contain",
+     *                     "content": "voice测试"
+     *                 }
+     *             ],
+     *             "reply_list_info": [
+     *                 {
+     *                     "type": "voice",
+     *                     "content": "NESsxgHEvAcg3egJTtYj4uG1PTL6iPhratdWKDLAXYErhN6oEEfMdVyblWtBY5vp"
+     *                 }
+     *             ]
+     *         },
+     *         ...
+     *     ]
+     * }
+     * }
+     * ```
+     */
+    public JsonObject getAutoreply () {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "get_current_autoreply_info?access_token=" + accessToken;
+
+        String respStr = HttpUtils.sendGetRequest(apiUrl);
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        return resp;
+    }
+
+
+    /**
+     * 创建门店 * Tips:
+     * - 创建门店接口调用成功后不会实时返回poi_id。
+     * - 成功创建后，门店信息会经过审核，审核通过后方可使用并获取poi_id。
+     * - 图片photo_url必须为上传图片接口(api.uploadLogo，参见卡券接口)生成的url。
+     * - 门店类目categories请参考微信公众号后台的门店管理部分。 * Poi:
+     * ```
+     * {
+     *   "sid": "5794560",
+     *   "business_name": "肯打鸡",
+     *   "branch_name": "东方路店",
+     *   "province": "上海市",
+     *   "city": "上海市",
+     *   "district": "浦东新区",
+     *   "address": "东方路88号",
+     *   "telephone": "021-5794560",
+     *   "categories": ["美食,快餐小吃"],
+     *   "offset_type": 1,
+     *   "longitude": 125.5794560,
+     *   "latitude": 45.5794560,
+     *   "photo_list": [{
+     *     "photo_url": "https://5794560.qq.com/1"
+     *   }, {
+     *     "photo_url": "https://5794560.qq.com/2"
+     *   }],
+     *   "recommend": "脉娜鸡腿堡套餐,脉乐鸡,全家捅",
+     *   "special": "免费WIFE,外卖服务",
+     *   "introduction": "肯打鸡是全球大型跨国连锁餐厅,2015年创立于米国,在世界上大约拥有3 亿间分店,主要售卖肯打鸡等垃圾食品",
+     *   "open_time": "10:00-18:00",
+     *   "avg_price": 88
+     * }
+     * ```
+     * Examples:
+     * ```
+     * api.addPoi(poi);
+     * ```
+     * Result:
+     * ```
+     * {"errcode":0,"errmsg":"ok"}
+     * ```
+     * @name addPoi
+     * @param {Object} poi 门店对象
+     */
+    public boolean addPoi (Map<String, Object> poi) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String apiUrl = this.PREFIX + "poi/addpoi?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> businessMap = new HashMap<String, Object>();
+        data.put("base_info", poi);
+        data.put("business", businessMap);
+
+        String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        int errCode = resp.get("errcode").getAsInt();
+        if(errCode == 0){
+            return true;
+        }else{
+            return false;
+        }
+    };
+
+//    /**
+//     * 获取门店信息 * Examples:
+//     * ```
+//     * api.getPoi(POI_ID);
+//     * ```
+//     * Result:
+//     * ```
+//     * {
+//     *   "sid": "5794560",
+//     *   "business_name": "肯打鸡",
+//     *   "branch_name": "东方路店",
+//     *   "province": "上海市",
+//     *   "city": "上海市",
+//     *   "district": "浦东新区",
+//     *   "address": "东方路88号",
+//     *   "telephone": "021-5794560",
+//     *   "categories": ["美食,快餐小吃"],
+//     *   "offset_type": 1,
+//     *   "longitude": 125.5794560,
+//     *   "latitude": 45.5794560,
+//     *   "photo_list": [{
+//     *     "photo_url": "https://5794560.qq.com/1"
+//     *   }, {
+//     *     "photo_url": "https://5794560.qq.com/2"
+//     *   }],
+//     *   "recommend": "脉娜鸡腿堡套餐,脉乐鸡,全家捅",
+//     *   "special": "免费WIFE,外卖服务",
+//     *   "introduction": "肯打鸡是全球大型跨国连锁餐厅,2015年创立于米国,在世界上大约拥有3 亿间分店,主要售卖肯打鸡等垃圾食品",
+//     *   "open_time": "10:00-18:00",
+//     *   "avg_price": 88,
+//     *   "available_state": 3,
+//     *   "update_status": 0
+//     * }
+//     * ```
+//     * @name getPoi
+//     * @param {Number} poiId 门店ID
+//     */
+//    public getPoi (String poiId) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = this.prefix + 'poi/getpoi?access_token=' + accessToken;
+//        var data = {
+//                poi_id: poiId
+//  };
+//        return this.request(url, postJSON(data));
+//    };
+//
+///**
+// * 获取门店列表
+// * Examples:
+// * ```
+// * api.getPois(0, 20);
+// * ```
+// * Result:
+// * ```
+// * {
+// *   "errcode": 0,
+// *   "errmsg": "ok"
+// *   "business_list": [{
+// *     "base_info": {
+// *       "sid": "100",
+// *       "poi_id": "5794560",
+// *       "business_name": "肯打鸡",
+// *       "branch_name": "东方路店",
+// *       "address": "东方路88号",
+// *       "available_state": 3
+// *     }
+// *   }, {
+// *     "base_info": {
+// *       "sid": "101",
+// *       "business_name": "肯打鸡",
+// *       "branch_name": "西方路店",
+// *       "address": "西方路88号",
+// *       "available_state": 4
+// *     }
+// *   }],
+// *   "total_count": "2",
+// * }
+// * ```
+// * @name getPois
+// * @param {Number} begin 开始位置，0即为从第一条开始查询
+// * @param {Number} limit 返回数据条数，最大允许50，默认为20
+// */
+//    exports.getPois = async function (begin, limit) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = this.prefix + 'poi/getpoilist?access_token=' + accessToken;
+//        var data = {
+//                begin: begin,
+//                limit: limit
+//  };
+//        return this.request(url, postJSON(data));
+//    };
+//
+///**
+// * 删除门店
+// * Tips:
+// * - 待审核门店不允许删除 * Examples:
+// * ```
+// * api.delPoi(POI_ID);
+// * ```
+// * @name delPoi
+// * @param {Number} poiId 门店ID
+// */
+//    exports.delPoi = async function (poiId) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var url = this.prefix + 'poi/delpoi?access_token=' + accessToken;
+//        var data = {
+//                poi_id: poiId
+//  };
+//        return this.request(url, postJSON(data));
+//    };
+//
+//    /**
+//     * 修改门店服务信息 * Tips: * - 待审核门店不允许修改 * Poi:
+//     * ```
+//     * {
+//     *   "poi_id": "5794560",
+//     *   "telephone": "021-5794560",
+//     *   "photo_list": [{
+//     *     "photo_url": "https://5794560.qq.com/1"
+//     *   }, {
+//     *     "photo_url": "https://5794560.qq.com/2"
+//     *   }],
+//     *   "recommend": "脉娜鸡腿堡套餐,脉乐鸡,全家捅",
+//     *   "special": "免费WIFE,外卖服务",
+//     *   "introduction": "肯打鸡是全球大型跨国连锁餐厅,2015年创立于米国,在世界上大约拥有3 亿间分店,主要售卖肯打鸡等垃圾食品",
+//     *   "open_time": "10:00-18:00",
+//     *   "avg_price": 88
+//     * }
+//     * ```
+//     * 特别注意，以上7个字段，若有填写内容则为覆盖更新，若无内容则视为不修改，维持原有内容。
+//     * photo_list字段为全列表覆盖，若需要增加图片，需将之前图片同样放入list中，在其后增加新增图片。 * Examples:
+//     * ```
+//     * api.updatePoi(poi);
+//     * ```
+//     * Result:
+//     * ```
+//     * {"errcode":0,"errmsg":"ok"}
+//     * ```
+//     * @name updatePoi
+//     * @param {Object} poi 门店对象
+//     */
+//        exports.updatePoi = async function (poi) {
+//  const { accessToken } = await this.ensureAccessToken();
+//        var data = {
+//                business: {
+//            base_info: poi
+//        }
+//  };
+//        var url = this.prefix + 'poi/updatepoi?access_token=' + accessToken;
+//        return this.request(url, postJSON(data));
+//    };
+    // TODO api_shakearound.js
+    // TODO api_shop_common.js
+    // TODO api_shop_express.js
+    // TODO api_shop_goods.js
+    // TODO api_shop_group.js
+    // TODO api_shop_order.js
+    // TODO api_shop_shelf.js
+    // TODO api_shop_stock.js
+    // TODO api_user.js
+
 
 }
 
