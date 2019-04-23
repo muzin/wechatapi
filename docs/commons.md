@@ -4,6 +4,7 @@
 - [getAccessToken 获取accessToken](#getAccessToken)
 - [getLatestTicket 获取最新的票据](#getLatestTicket)
 - [getIp 获取微信IP](#getIp)
+- [uploadPicture 上传图片](#uploadPicture)
 
 ### getAccessToken
 获取accessToken,
@@ -12,7 +13,7 @@ Examples:
 ```
 api.getAccessToken();
 ```
-> 不建议获取accessToken,程序中已经维护好accessToken的使用。
+> 不建议主动获取accessToken,程序中已经维护好accessToken的使用。
 > 直接调用功能方法即可。
 
 ### getLatestTicket
@@ -36,3 +37,23 @@ Result:
 ["127.0.0.1","127.0.0.1"]
 ```
 
+### uploadPicture
+上传图片
+
+详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=微信小店接口>
+
+Examples:
+```
+api.uploadPicture('/path/to/your/img.jpg');
+```
+
+Result:
+```
+{
+ "errcode": 0,
+ "errmsg": "success"
+ "image_url": "http://mmbiz.qpic.cn/mmbiz/4whpV1VZl2ibl4JWwwnW3icSJGqecVtRiaPxwWEIr99eYYL6AAAp1YBo12CpQTXFH6InyQWXITLvU4CU7kic4PcoXA/0"
+}
+```
+Param: 
+- filepath {String} 文件路径

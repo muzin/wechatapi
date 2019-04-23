@@ -7,7 +7,9 @@ public abstract class TicketStorageResolver {
 
     private TicketStore ticketStore;
 
-    public TicketStorageResolver(){}
+    public TicketStorageResolver(){
+        this.ticketStore = new TicketStore();
+    }
 
     public TicketStorageResolver(TicketStore store){
         this.ticketStore = store;

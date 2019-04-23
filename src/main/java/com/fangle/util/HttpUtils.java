@@ -3,6 +3,7 @@ package com.fangle.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -15,6 +16,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -171,6 +173,15 @@ public class HttpUtils {
                             fileName);// 文件流
                 }
 
+                if(val instanceof InputStream){
+                    InputStream is = (InputStream) val;
+                    builder.addBinaryBody(
+                            key,
+                            is,
+                            ContentType.MULTIPART_FORM_DATA,
+                            new Date().getTime() + "" + Math.floor(Math.random() * 10000));// 文件流
+                }
+
             }
 
             HttpEntity formDataEntity = builder.build();
@@ -201,6 +212,40 @@ public class HttpUtils {
         return responseContent;
     }
 
+    public static String sendPostFileRequest(String url, File file){
+        long responseLength = 0;       //响应长度
+        String responseContent = null; //响应内容
+        HttpClient httpClient = new DefaultHttpClient(); //创建默认的httpClient实例
+        HttpPost httpPost = new HttpPost(url);           //创建org.apache.http.client.methods.HttpGet
+        try{
+
+            FileEntity fileEntity = new FileEntity(file);
+            httpPost.setEntity(fileEntity);
+
+            HttpResponse response = httpClient.execute(httpPost); //执行POST请求
+            HttpEntity entity = response.getEntity();            //获取响应实体
+            if(null != entity){
+                responseLength = entity.getContentLength();
+                responseContent = EntityUtils.toString(entity, "UTF-8");
+                EntityUtils.consume(entity); //Consume response content
+            }
+            System.out.println("请求地址: " + httpPost.getURI());
+            System.out.println("响应状态: " + response.getStatusLine());
+            System.out.println("响应长度: " + responseLength);
+            System.out.println("响应内容: " + responseContent);
+        }catch(ClientProtocolException e){
+            System.out.println("该异常通常是协议错误导致,比如构造HttpGet对象时传入的协议不对(将'http'写成'htp')或者服务器端返回的内容不符合HTTP协议要求等,堆栈信息如下");
+            e.printStackTrace();
+        }catch(ParseException e){
+            e.printStackTrace();
+        }catch(IOException e){
+            System.out.println("该异常通常是网络原因引起的,如HTTP服务器未启动等,堆栈信息如下");
+            e.printStackTrace();
+        }finally{
+            httpClient.getConnectionManager().shutdown(); //关闭连接,释放资源
+        }
+        return responseContent;
+    }
 
     /**
      * 发送HTTP_POST请求
