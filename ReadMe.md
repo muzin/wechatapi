@@ -27,7 +27,6 @@
 
 ## Installtion
 
-为防止和项目开发中的jar冲突，组建jar包时，不添加对其他jar包的依赖。
 需手动在项目中加入如下jar：
 ```
 // 需引入以下 jar 包
@@ -42,9 +41,6 @@ compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.6'
 compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.6'
 
 ```
-
-> 如果需要将第三方jar添加到jar包中，去掉`build.gradle`中的`jar`部分的注释。
-
 
 #### 组建jar
 ```

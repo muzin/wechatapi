@@ -14,17 +14,19 @@ repositories {
     mavenCentral()
 }
 
-//jar {
-//    manifest {
-//        attributes(
-//            "Implementation-Title": "Gradle"
-//        )
-//    }
+jar {
+    manifest {
+        attributes(
+            "Implementation-Title": "Gradle",
+            "Author": "muzin",
+            "Email": "sirius1@aliyun.com"
+        )
+    }
 //    into('lib') {
 //        from configurations.runtime
 //    }
-//
-//}
+
+}
 
 dependencies {
 

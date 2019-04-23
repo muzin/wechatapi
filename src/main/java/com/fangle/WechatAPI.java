@@ -355,7 +355,7 @@ public class WechatAPI {
         // 没有ticket或者无效
         if (ticket == null || !ticket.isValid()) {
             // 从微信端获取ticket
-            ticket = ticketStorageResolver.getTicket(type);
+            ticket = getTicket(type);
         }
         return ticket;
     };
