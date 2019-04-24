@@ -1,6 +1,8 @@
-package com.fanglesoft.util;
+package com.fangle.util;
 
 public class StringUtils {
+
+    private StringUtils(){}
 
     public static boolean notEmpty (String str){
         return str != null && !"".equals(str);

@@ -1,6 +1,6 @@
-package com.fanglesoft.entity;
+package com.fangle.entity;
 
-import com.fanglesoft.util.StringUtils;
+import com.fangle.util.StringUtils;
 
 import java.util.Date;
 
@@ -10,6 +10,10 @@ public class AccessToken {
 
     private Long expireTime;
 
+    public AccessToken(String accessToken, Long expireTime){
+        this.accessToken = accessToken;
+        this.expireTime = expireTime;
+    }
 
     /**
      * 设置 token
