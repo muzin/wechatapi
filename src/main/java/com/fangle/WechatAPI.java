@@ -107,6 +107,7 @@ public class WechatAPI {
         this.appsecret = appsecret;
         this.tokenStorageResolver = tokenStorageResolver;
         this.jsonParser = new JsonParser();
+        this.gson = new Gson();
 
         this.ticketStorageResolver = new TicketStorageResolver(new TicketStore()) {
             @Override
