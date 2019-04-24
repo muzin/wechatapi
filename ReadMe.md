@@ -42,6 +42,19 @@ compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.6'
 
 ```
 
+组建jar包后，将jar包放入项目下，
+在build.gradle的`repositories`、`dependencies`加入如下代码：
+```
+repositories {
+     flatDir {  dirs 'lib' }     //   lib 代表存放jar包的目录
+}
+
+dependencies {
+    compile group: 'com.fangle', name:"wechatapi", version:'1.0.0'
+}
+
+```
+
 #### 组建jar
 ```
 gradle jar
@@ -51,7 +64,9 @@ gradle jar
 ## Usage
 
 ```
-  WechatAPI api = new WechatAPI(appid, appsecret);
+import com.fangle.WechatAPI;
+
+WechatAPI api = new WechatAPI(appid, appsecret);
 ```
 
 ## 多进程
