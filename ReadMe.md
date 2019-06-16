@@ -50,7 +50,7 @@ repositories {
 }
 
 dependencies {
-    compile group: 'com.fangle', name:"wechatapi", version:'1.0.0'
+    compile group: 'cn.muzin', name:"wechatapi", version:'1.0.0'
 }
 
 ```
