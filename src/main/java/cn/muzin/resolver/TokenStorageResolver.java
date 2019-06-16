@@ -1,6 +1,6 @@
-package com.fangle.resolver;
+package cn.muzin.resolver;
 
-import com.fangle.entity.AccessToken;
+import cn.muzin.entity.AccessToken;
 
 public abstract class TokenStorageResolver {
 

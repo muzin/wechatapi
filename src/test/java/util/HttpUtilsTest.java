@@ -1,6 +1,6 @@
 package util;
 
-import com.fangle.util.HttpUtils;
+import cn.muzin.util.HttpUtils;
 import org.junit.Test;
 import wechatapi.ConfigEntity;
 

@@ -1,6 +1,6 @@
 package wechatapi;
 
-import com.fangle.WechatAPI;
+import cn.muzin.WechatAPI;
 
 public class WechatAPIEntity {
 

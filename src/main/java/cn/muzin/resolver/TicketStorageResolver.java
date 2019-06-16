@@ -1,7 +1,7 @@
-package com.fangle.resolver;
+package cn.muzin.resolver;
 
-import com.fangle.entity.Ticket;
-import com.fangle.entity.TicketStore;
+import cn.muzin.entity.Ticket;
+import cn.muzin.entity.TicketStore;
 
 public abstract class TicketStorageResolver {
 

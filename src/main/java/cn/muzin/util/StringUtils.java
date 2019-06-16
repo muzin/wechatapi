@@ -1,4 +1,4 @@
-package com.fangle.util;
+package cn.muzin.util;
 
 public class StringUtils {
 

@@ -1,4 +1,4 @@
-package com.fangle.entity;
+package cn.muzin.entity;
 
 public enum DatacubeType {
     // 用户分析数据接口

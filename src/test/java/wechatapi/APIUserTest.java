@@ -1,6 +1,6 @@
 package wechatapi;
 
-import com.fangle.WechatAPI;
+import cn.muzin.WechatAPI;
 import com.google.gson.JsonObject;
 import org.junit.Assert;
 import org.junit.Test;

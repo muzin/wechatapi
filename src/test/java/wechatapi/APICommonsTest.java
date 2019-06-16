@@ -1,8 +1,8 @@
 package wechatapi;
 
-import com.fangle.WechatAPI;
-import com.fangle.entity.AccessToken;
-import com.fangle.entity.Ticket;
+import cn.muzin.WechatAPI;
+import cn.muzin.entity.AccessToken;
+import cn.muzin.entity.Ticket;
 import com.google.gson.JsonObject;
 import org.junit.Assert;
 import org.junit.Test;

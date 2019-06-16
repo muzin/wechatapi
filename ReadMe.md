@@ -64,7 +64,7 @@ gradle jar
 ## Usage
 
 ```
-import com.fangle.WechatAPI;
+import WechatAPI;
 
 WechatAPI api = new WechatAPI(appid, appsecret);
 ```

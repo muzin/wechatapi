@@ -1,44 +1,44 @@
-package com.fangle.entity;
+package cn.muzin.entity;
 
-import com.fangle.util.StringUtils;
+import cn.muzin.util.StringUtils;
 
 import java.util.Date;
 
-public class AccessToken {
+public class Ticket {
 
-    private String accessToken;
+    private String ticket;
 
     private Long expireTime;
 
-    public AccessToken(String accessToken, Long expireTime){
-        this.accessToken = accessToken;
+    public Ticket(String ticket, Long expireTime){
+        this.ticket = ticket;
         this.expireTime = expireTime;
     }
 
     /**
-     * 设置 token
+     * 设置 票据
      * Examples:
      * ```
-     * token.setAccessToken("...");
+     * token.setTicket("...");
      * ```
-     * @param token accessToken
-     * @return AccessToken
+     * @param ticket
+     * @return Ticket
      */
-    public AccessToken setAccessToken(String token){
-        this.accessToken = token;
+    public Ticket setTicket(String ticket){
+        this.ticket = ticket;
         return this;
     }
 
     /**
-     * 获取 token
+     * 获取 ticket
      * Examples:
      * ```
-     * String token = token.getAccessToken();
+     * String token = token.getTicket();
      * ```
      * @return String
      */
-    public String getAccessToken(){
-        return this.accessToken;
+    public String getTicket(){
+        return this.ticket;
     }
 
     /**
@@ -54,7 +54,7 @@ public class AccessToken {
     }
 
     /**
-     * 设置 token
+     * 设置 过期时间
      * Examples:
      * ```
      * token.setExpireTime(123456789);
@@ -62,21 +62,21 @@ public class AccessToken {
      * @param expireTime 过期时间
      * @return AccessToken
      */
-    public AccessToken setExpireTime(Long expireTime){
+    public Ticket setExpireTime(Long expireTime){
         this.expireTime = expireTime;
         return this;
     }
 
 
     /**
-     * 检查AccessToken是否有效，检查规则为当前时间和过期时间进行对比
+     * 检查ticket是否有效，检查规则为当前时间和过期时间进行对比
      * Examples:
      * ```
      * token.isValid();
      * ```
      */
     public boolean isValid () {
-        return StringUtils.notEmpty(this.accessToken)
+        return StringUtils.notEmpty(this.ticket)
                 && new Date().getTime() < this.expireTime;
     }
 

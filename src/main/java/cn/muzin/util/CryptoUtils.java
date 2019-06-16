@@ -1,4 +1,4 @@
-package com.fangle.util;
+package cn.muzin.util;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

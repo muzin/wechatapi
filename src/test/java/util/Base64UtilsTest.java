@@ -1,6 +1,6 @@
 package util;
 
-import com.fangle.util.Base64Utils;
+import cn.muzin.util.Base64Utils;
 import org.junit.Assert;
 import org.junit.Test;
 

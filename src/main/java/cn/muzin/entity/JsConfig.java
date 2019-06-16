@@ -1,4 +1,4 @@
-package com.fangle.entity;
+package cn.muzin.entity;
 
 import java.util.List;
 

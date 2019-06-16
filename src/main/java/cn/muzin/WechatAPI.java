@@ -1,11 +1,11 @@
-package com.fangle;
+package cn.muzin;
 
-import com.fangle.entity.*;
-import com.fangle.resolver.TicketStorageResolver;
-import com.fangle.resolver.TokenStorageResolver;
-import com.fangle.util.Base64Utils;
-import com.fangle.util.CryptoUtils;
-import com.fangle.util.HttpUtils;
+import cn.muzin.entity.*;
+import cn.muzin.resolver.TicketStorageResolver;
+import cn.muzin.resolver.TokenStorageResolver;
+import cn.muzin.util.Base64Utils;
+import cn.muzin.util.CryptoUtils;
+import cn.muzin.util.HttpUtils;
 import com.google.gson.*;
 
 import java.io.File;

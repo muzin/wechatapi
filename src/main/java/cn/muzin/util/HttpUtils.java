@@ -1,4 +1,4 @@
-package com.fangle.util;
+package cn.muzin.util;
 
 import java.io.File;
 import java.io.FileInputStream;

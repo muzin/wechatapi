@@ -1,4 +1,4 @@
-package com.fangle.util;
+package cn.muzin.util;
 
 import java.util.Base64;
 import java.util.Base64.Decoder;
