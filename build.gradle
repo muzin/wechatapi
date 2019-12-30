@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-group 'com.fangle'
+group 'cn.muzin'
 version '1.0.0'
 
 sourceCompatibility = 1.8
