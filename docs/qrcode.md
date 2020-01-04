@@ -7,7 +7,9 @@
 
 ### createTmpQRCode
 创建临时二维码
+
 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=生成带参数的二维码>
+
 Examples:
 ```
 api.createTmpQRCode(10000, 1800);
@@ -24,7 +26,9 @@ Result:
 
 ### createLimitQRCode
 创建永久二维码
+
 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=生成带参数的二维码>
+
 Examples:
 ```
 api.createLimitQRCode(100);
@@ -39,7 +43,10 @@ Result:
 
 
 ### showQRCodeURL
-生成显示二维码的链接。微信扫描后，可立即进入场景
+生成显示二维码的链接。
+
+微信扫描后，可立即进入场景
+
 Examples:
 ```
 api.showQRCodeURL(ticket);
