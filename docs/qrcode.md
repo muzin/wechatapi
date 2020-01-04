@@ -12,14 +12,14 @@ Examples:
 ```
 api.createTmpQRCode(10000, 1800);
 ```
- *
+
 Result:
 ```
 {
  "ticket":"gQG28DoAAAAAAAAAASxodHRwOi8vd2VpeGluLnFxLmNvbS9xL0FuWC1DNmZuVEhvMVp4NDNMRnNRAAIEesLvUQMECAcAAA==",
  "expire_seconds":1800
 }
-    ```
+```
 
 
 ### createLimitQRCode
@@ -29,7 +29,7 @@ Examples:
 ```
 api.createLimitQRCode(100);
 ```
- *
+
 Result:
 ```
 {
