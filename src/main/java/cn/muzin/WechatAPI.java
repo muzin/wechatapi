@@ -2156,9 +2156,15 @@ public class WechatAPI {
     /**
      * 创建永久二维码
      * 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=生成带参数的二维码>
+     *
+     * scene_id	场景值ID，临时二维码时为32位非0整型，永久二维码时最大值为100000（目前参数只支持1--100000）
+     *
+     * scene_str 场景值ID（字符串形式的ID），字符串类型，长度限制为1到64
+     *
      * Examples:
      * ```
      * api.createLimitQRCode(100);
+     * api.createLimitQRCode("test");
      * ```
      *
      * Result:
@@ -2176,12 +2182,37 @@ public class WechatAPI {
 
         String url = this.PREFIX + "qrcode/create?access_token=" + accessToken;
 
+        // {"action_name": "QR_LIMIT_SCENE", "action_info": {"scene": {"scene_id": 100 }}}
         Map<String, Object> data = new HashMap<String, Object>();
-            Map<String, Object> action_info = new HashMap<String, Object>();
-                Map<String, Object> scene = new HashMap<String, Object>();
-                scene.put("scene_id", sceneId);
-            action_info.put("scene", scene);
+        Map<String, Object> action_info = new HashMap<String, Object>();
+        Map<String, Object> scene = new HashMap<String, Object>();
+        scene.put("scene_id", sceneId);
+        action_info.put("scene", scene);
         data.put("action_name", "QR_LIMIT_SCENE");
+        data.put("action_info", action_info);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        String ticket = resp.get("ticket").getAsString();
+
+        return ticket;
+    }
+
+    public String createLimitQRCode (String sceneStr) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        String url = this.PREFIX + "qrcode/create?access_token=" + accessToken;
+
+        // {"action_name": "QR_LIMIT_STR_SCENE", "action_info": {"scene": {"scene_str": "test"}}}
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> action_info = new HashMap<String, Object>();
+        Map<String, Object> scene = new HashMap<String, Object>();
+        scene.put("scene_str", sceneStr);
+        action_info.put("scene", scene);
+        data.put("action_name", "QR_LIMIT_STR_SCENE");
         data.put("action_info", action_info);
 
         String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
