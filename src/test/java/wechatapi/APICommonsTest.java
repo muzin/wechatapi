@@ -55,7 +55,7 @@ public class APICommonsTest {
 
     }
 
-    @Test
+    // @Test not auth
     public void uploadPicture(){
         JsonObject ret = wechatAPI.uploadPicture(ConfigEntity.filepath);
 

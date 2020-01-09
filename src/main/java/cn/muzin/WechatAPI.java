@@ -1,6 +1,7 @@
 package cn.muzin;
 
 import cn.muzin.entity.*;
+import cn.muzin.exception.WebAuthAccessTokenException;
 import cn.muzin.resolver.TicketStorageResolver;
 import cn.muzin.resolver.TokenStorageResolver;
 import cn.muzin.util.Base64Utils;
@@ -38,6 +39,8 @@ public class WechatAPI {
     private String CUSTOM_SERVICE_PREFIX = "https://api.weixin.qq.com/customservice/";
 
     private String WXA_PREFIX = "https://api.weixin.qq.com/wxa/";
+
+    private String WEB_AUTH_PREFIX = "https://api.weixin.qq.com/sns/";
 
     private JsonParser jsonParser;
 
@@ -176,6 +179,58 @@ public class WechatAPI {
         }
         return this.getAccessToken();
     }
+
+    /**
+     * 获取网页授权登录AccessToken
+     *
+     * Examples:
+     * ```
+     * WebAuthAccessToken token = api.getWebAuthAccessToken(code);
+     * ```
+     *
+     * Result:
+     * - `access_token`: 网页授权接口调用凭证,注意：此access_token与基础支持的access_token不同
+     * - `expires_in`: access_token接口调用凭证超时时间，单位（秒）
+     * - `refresh_token`: 用户刷新access_token
+     * - `openid` : 用户唯一标识，请注意，在未关注公众号时，用户访问公众号的网页，也会产生一个用户和公众号唯一的OpenID
+     * - `scope`: 用户授权的作用域，使用逗号（,）分隔
+     *
+     */
+    public WebAuthAccessToken getWebAuthAccessToken(String code) throws WebAuthAccessTokenException {
+
+        //  https://api.weixin.qq.com/sns/oauth2/access_token?appid=APPID&secret=SECRET&code=CODE&grant_type=authorization_code
+        String url = this.PREFIX + "/oauth2/access_token?appid=" + this.getAppid() +
+                "&secret=" + this.getAppsecret() +
+                "&code=" + code +
+                "&grant_type=authorization_code";
+
+        String dataStr = HttpUtils.sendGetRequest(url, null,"utf-8");
+        JsonObject data = (JsonObject) jsonParser.parse(dataStr);
+
+        if(!data.has("errcode")){
+
+            String accessToken = data.get("access_token").getAsString();
+            Integer expiresIn = data.get("expires_in").getAsInt();
+            String refreshToken = data.get("refresh_token").getAsString();
+            String openid = data.get("openid").getAsString();
+            String scope = data.get("scope").getAsString();
+
+            WebAuthAccessToken webAuthAccessToken = new WebAuthAccessToken()
+                    .setAccessToken(accessToken)
+                    .setExpiresIn(expiresIn)
+                    .setRefreshToken(refreshToken)
+                    .setOpenid(openid)
+                    .setScope(scope);
+
+            return webAuthAccessToken;
+
+        }else{
+            throw new WebAuthAccessTokenException("get access_token of webauth is failed, reason", dataStr);
+        }
+
+    }
+
+
 
     /**
      * 获取js sdk所需的有效js ticket

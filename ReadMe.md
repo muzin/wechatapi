@@ -5,6 +5,7 @@
 ## 功能列表
 
 - [公共API](docs/commons.md)
+- [授权登录](docs/authLogin.md)
 - [发送客服消息（文本、图片、语音、视频、音乐、图文）](docs/sendCustomerServiceMessage.md)
 - [菜单操作（查询、创建、删除、个性化菜单）](docs/menuOperations.md)
 - [二维码（创建临时、永久二维码，查看二维码URL）](docs/qrcode.md)
