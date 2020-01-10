@@ -199,7 +199,7 @@ public class WechatAPI {
     public WebAuthAccessToken getWebAuthAccessToken(String code) throws WebAuthAccessTokenException {
 
         //  https://api.weixin.qq.com/sns/oauth2/access_token?appid=APPID&secret=SECRET&code=CODE&grant_type=authorization_code
-        String url = this.PREFIX + "/oauth2/access_token?appid=" + this.getAppid() +
+        String url = this.WEB_AUTH_PREFIX + "oauth2/access_token?appid=" + this.getAppid() +
                 "&secret=" + this.getAppsecret() +
                 "&code=" + code +
                 "&grant_type=authorization_code";
