@@ -2,6 +2,7 @@ package cn.muzin.util;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Formatter;
 
 public class CryptoUtils {
 
@@ -14,11 +15,18 @@ public class CryptoUtils {
     }
 
     public static String byteToStr(byte[] byteArray) {
-        StringBuilder sbd = new StringBuilder();
-        for (byte aByteArray : byteArray) {
-            sbd.append(byteToHexStr(aByteArray));
+        Formatter formatter = new Formatter();
+        for (byte b : byteArray) {
+            formatter.format("%02x", b);
         }
-        return sbd.toString();
+        String result = formatter.toString();
+        formatter.close();
+        return result;
+//        StringBuilder sbd = new StringBuilder();
+//        for (byte aByteArray : byteArray) {
+//            sbd.append(byteToHexStr(aByteArray));
+//        }
+//        return sbd.toString();
     }
 
     public static String byteToHexStr(byte mByte) {

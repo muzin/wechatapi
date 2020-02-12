@@ -323,7 +323,7 @@ public class WechatAPI {
 
         Map<String, String> ret = new HashMap<String, String>();
         ret.put("jsapi_ticket", jsapi_ticket);
-        ret.put("nonceStr", nonceStr);
+        ret.put("noncestr", nonceStr);
         ret.put("timestamp", timestamp);
         ret.put("url", url);
 
