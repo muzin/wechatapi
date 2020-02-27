@@ -8,6 +8,7 @@ import cn.muzin.util.Base64Utils;
 import cn.muzin.util.CryptoUtils;
 import cn.muzin.util.HttpUtils;
 import com.google.gson.*;
+import org.apache.http.HttpResponse;
 
 import java.io.File;
 import java.io.InputStream;
@@ -106,13 +107,17 @@ public class WechatAPI {
      * @param {TokenStorageResolver} tokenStorageResolver 可选的。获取全局token对象的方法，多进程模式部署时需在意
      */
     public WechatAPI(String appid, String appsecret, TokenStorageResolver tokenStorageResolver){
-        this.appid = appid;
-        this.appsecret = appsecret;
-        this.tokenStorageResolver = tokenStorageResolver;
-        this.jsonParser = new JsonParser();
-        this.gson= new Gson();
+        this(appid, appsecret, new TokenStorageResolver() {
+            @Override
+            public AccessToken getToken() {
+                return this.getAccessToken();
+            }
 
-        this.ticketStorageResolver = new TicketStorageResolver(new TicketStore()) {
+            @Override
+            public void saveToken(AccessToken accessToken) {
+                this.setAccessToken(accessToken);
+            }
+        }, new TicketStorageResolver(new TicketStore()) {
             @Override
             public Ticket getTicket(String type) {
                 return this.getTicketStore().get(type);
@@ -122,8 +127,42 @@ public class WechatAPI {
             public void saveTicket(String type, Ticket ticket) {
                 this.getTicketStore().put(type, ticket);
             }
-        };
+        });
+    }
 
+    /**
+     * 根据 appid 和 appsecret 创建API的构造函数
+     * 如需跨进程跨机器进行操作Wechat API（依赖access token），access token需要进行全局维护
+     * 使用策略如下：
+     * 1. 调用用户传入的获取 token 的异步方法，获得 token 之后使用
+     * 2. 使用appid/appsecret获取 token 。并调用用户传入的保存 token 方法保存
+     * Tips:
+     * - 如果跨机器运行wechat模块，需要注意同步机器之间的系统时间。
+     * Examples:
+     * ```
+     * import com.fanglesoft.WechatAPI;
+     * WechatAPI api = new WechatAPI('appid', 'secret');
+     * ```
+     * 以上即可满足单进程使用。
+     * 当多进程时，token 需要全局维护，以下为保存 token 的接口。
+     * ```
+     * WechatAPI api = new WechatAPI('appid', 'secret');
+     * ```
+     * ```
+     * @param {String} appid 在公众平台上申请得到的appid
+     * @param {String} appsecret 在公众平台上申请得到的app secret
+     * @param {TokenStorageResolver} tokenStorageResolver 可选的。获取全局token对象的方法，多进程模式部署时需在意
+     * @param {TicketStorageResolver} ticketStorageResolver 可选的。获取全局ticket对象的方法，多进程模式部署时需在意
+     */
+    public WechatAPI(String appid, String appsecret,
+                     TokenStorageResolver tokenStorageResolver,
+                     TicketStorageResolver ticketStorageResolver){
+        this.appid = appid;
+        this.appsecret = appsecret;
+        this.jsonParser = new JsonParser();
+        this.gson= new Gson();
+        this.tokenStorageResolver = tokenStorageResolver;
+        this.ticketStorageResolver = ticketStorageResolver;
     }
 
     public String getAppid() {
@@ -3615,10 +3654,10 @@ public class WechatAPI {
      * @param {String} type 媒体类型，可用值有image、voice、video、thumb
      */
     public JsonObject uploadMedia (String filepath, String type) {
-        return uploadMedia(filepath, type);
+        return uploadMedia((Object) filepath, type);
     }
     public JsonObject uploadMedia (InputStream fileInputStream, String type) {
-        return uploadMedia(fileInputStream, type);
+        return uploadMedia((Object) fileInputStream, type);
     }
 
     public JsonObject uploadMedia (Object filepath, String type) {
@@ -3691,18 +3730,18 @@ public class WechatAPI {
      * - `res`, HTTP响应对象
      * @param {String} mediaId 媒体文件的ID
      */
-    public JsonObject getMedia (String mediaId) {
+    public HttpResponse getMedia (String mediaId) {
 
         AccessToken token = this.ensureAccessToken();
         String accessToken = token.getAccessToken();
 
         String url = this.PREFIX + "media/get?access_token=" + accessToken + "&media_id=" + mediaId;
 
-        String respStr = HttpUtils.sendGetRequest(url);
-        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+        HttpResponse httpResponse = HttpUtils.sendGetRequestReturnResponse(url);
 
-        return resp;
-    };
+        return httpResponse;
+
+    }
     /**
      * 上传图文消息内的图片获取URL
      * 详情请见：<http://mp.weixin.qq.com/wiki/15/5380a4e6f02f2ffdc7981a8ed7a40753.html>

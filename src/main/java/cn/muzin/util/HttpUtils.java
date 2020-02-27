@@ -28,6 +28,12 @@ import org.apache.http.util.EntityUtils;
 
 public class HttpUtils {
 
+    private static HttpClient httpClient = new DefaultHttpClient(); //创建默认的httpClient实例
+
+    public HttpClient getHttpClient(){
+        return this.httpClient;
+    }
+
     private HttpUtils(){}
 
     public static String sendGetRequest(String url){
@@ -36,6 +42,14 @@ public class HttpUtils {
 
     public static String sendGetRequest(String url, String decodeCharset){
         return sendGetRequest(url, null, "utf-8");
+    }
+
+    public static HttpResponse sendGetRequestReturnResponse(String url){
+        return sendGetRequestReturnResponse(url, "utf-8");
+    }
+
+    public static HttpResponse sendGetRequestReturnResponse(String url, String decodeCharset){
+        return sendGetRequestReturnResponse(url, null, "utf-8");
     }
 
     /**
@@ -88,6 +102,40 @@ public class HttpUtils {
         return responseContent;
     }
 
+    public static HttpResponse sendGetRequestReturnResponse(String url, Map<String, Object> opts, String decodeCharset){
+
+        HttpGet httpGet = new HttpGet(url);           //创建org.apache.http.client.methods.HttpGet
+        HttpResponse response = null;
+        try{
+
+            if(opts != null){
+                if(opts.containsKey("headers")){
+                    Map<String, String> headers = (Map<String, String>) opts.get("headers");
+                    Set<String> headerSetKeys = headers.keySet();
+                    for(String key : headerSetKeys){
+                        httpGet.addHeader(key, headers.get(key).toString());
+                    }
+                }
+            }
+
+            response = httpClient.execute(httpGet); //执行GET请求
+            HttpEntity entity = response.getEntity();            //获取响应实体
+
+            System.out.println("请求地址: " + httpGet.getURI());
+            System.out.println("响应状态: " + response.getStatusLine());
+        }catch(ClientProtocolException e){
+            System.out.println("该异常通常是协议错误导致,比如构造HttpGet对象时传入的协议不对(将'http'写成'htp')或者服务器端返回的内容不符合HTTP协议要求等,堆栈信息如下");
+            e.printStackTrace();
+        }catch(ParseException e){
+            e.printStackTrace();
+        }catch(IOException e){
+            System.out.println("该异常通常是网络原因引起的,如HTTP服务器未启动等,堆栈信息如下");
+            e.printStackTrace();
+        }finally{
+//            httpClient.getConnectionManager().shutdown(); //关闭连接,释放资源
+        }
+        return response;
+    }
 
     /**
      * 发送HTTP_GET请求
@@ -147,7 +195,7 @@ public class HttpUtils {
         try{
 
             MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-            builder.setCharset(java.nio.charset.Charset.forName("UTF-8"));
+            builder.setCharset(Charset.forName("UTF-8"));
             builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 
             Set<String> formDataKeys = param.keySet();
