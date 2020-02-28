@@ -98,3 +98,47 @@ WechatAPI api = new WechatAPI(appid, appsecret, new TokenStorageResolver() {
 });
 
 ```
+或者
+```
+// 全局维护 accessToken 和 ticket
+
+WechatAPI api = new WechatAPI(appid, appsecret, 
+    new TokenStorageResolver() {
+    
+        /**
+         * 获取token
+         * 程序内部将通过此方法获取token
+         */
+        @Override
+        public AccessToken getToken() {
+            AccessToken token = 从文件、redis等渠道获取保存的accessToken
+            return token;
+        }
+        
+        /**
+         * 保存token
+         * 程序内部每次更新accessToken时，将会通知此方法
+         * 在此时将accessToken持久化
+         */
+        @Override
+        public void saveToken(AccessToken accessToken) {
+            // code...
+            // 保存到文件、redis等渠道
+        }
+    }，new TicketStorageResolver() {
+  
+         @Override
+         public Ticket getTicket(String s) {
+            Ticket ticket = 从文件、redis等渠道获取保存的ticket
+            return ticket;
+         }
+
+         @Override
+         public void saveTicket(String s, Ticket ticket) {
+            // code...
+            // 保存到文件、redis等渠道
+        }
+
+    });
+
+```
