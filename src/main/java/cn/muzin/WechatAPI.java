@@ -3565,12 +3565,12 @@ public class WechatAPI {
         String apiUrl = this.PREFIX + "message/template/send?access_token=" + accessToken;
 
         Map<String, Object> template = new HashMap<String, Object>();
-        data.put("touser", openid);
-        data.put("template_id", templateId);
-        data.put("url", url);
-        data.put("miniprogram", miniprogram);
-        data.put("color", topColor);
-        data.put("data", data);
+        template.put("touser", openid);
+        template.put("template_id", templateId);
+        template.put("url", url);
+        template.put("miniprogram", miniprogram);
+        template.put("color", topColor);
+        template.put("data", data);
 
         String respStr = HttpUtils.sendPostJsonRequest(apiUrl, gson.toJson(template));
         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
