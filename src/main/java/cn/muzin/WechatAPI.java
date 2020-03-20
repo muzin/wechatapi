@@ -2211,11 +2211,11 @@ public class WechatAPI {
      * @param {Number} sceneStr 字符串 不超过64位
      * @param {Number} expire 过期时间，单位秒。该二维码有效时间，以秒为单位。 最大不超过2592000（即30天），此字段如果不填，则默认有效期为30秒。
      */
-    public JsonObject createTmpQRCode (String sceneStr) {
+    public String createTmpQRCode (String sceneStr) {
         return this.createTmpQRCode(sceneStr, 30);
     }
 
-    public JsonObject createTmpQRCode (String sceneStr, Integer expire) {
+    public String createTmpQRCode (String sceneStr, Integer expire) {
 
         AccessToken token = this.ensureAccessToken();
         String accessToken = token.getAccessToken();
@@ -2237,7 +2237,9 @@ public class WechatAPI {
         String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
 
-        return resp;
+        String ticket = resp.get("ticket").getAsString();
+
+        return ticket;
     };
 
 
