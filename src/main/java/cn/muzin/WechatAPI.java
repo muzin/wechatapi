@@ -2192,6 +2192,56 @@ public class WechatAPI {
         return resp;
     };
 
+
+    /**
+     * 创建临时二维码
+     * 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=生成带参数的二维码>
+     * Examples:
+     * ```
+     * api.createTmpQRCode(10000, 1800);
+     * ```
+     *
+     * Result:
+     * ```
+     * {
+     *  "ticket":"gQG28DoAAAAAAAAAASxodHRwOi8vd2VpeGluLnFxLmNvbS9xL0FuWC1DNmZuVEhvMVp4NDNMRnNRAAIEesLvUQMECAcAAA==",
+     *  "expire_seconds":1800
+     * }
+     * ```
+     * @param {Number} sceneStr 字符串 不超过64位
+     * @param {Number} expire 过期时间，单位秒。该二维码有效时间，以秒为单位。 最大不超过2592000（即30天），此字段如果不填，则默认有效期为30秒。
+     */
+    public JsonObject createTmpQRCode (String sceneStr) {
+        return this.createTmpQRCode(sceneStr, 30);
+    }
+
+    public JsonObject createTmpQRCode (String sceneStr, Integer expire) {
+
+        AccessToken token = this.ensureAccessToken();
+        String accessToken = token.getAccessToken();
+
+        // 如果 过期时间大约30天
+        if(expire > 2592000){ expire = 2592000; }
+
+        String url = this.PREFIX + "qrcode/create?access_token=" + accessToken;
+
+        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> action_info = new HashMap<String, Object>();
+        Map<String, Object> scene = new HashMap<String, Object>();
+        scene.put("scene_str", sceneStr);
+        action_info.put("scene", scene);
+        data.put("expire_seconds", expire);
+        data.put("action_name", "QR_STR_SCENE");
+        data.put("action_info", action_info);
+
+        String respStr = HttpUtils.sendPostJsonRequest(url, gson.toJson(data));
+        JsonObject resp = (JsonObject) jsonParser.parse(respStr);
+
+        return resp;
+    };
+
+
+
     /**
      * 创建永久二维码
      * 详细请看：<http://mp.weixin.qq.com/wiki/index.php?title=生成带参数的二维码>
