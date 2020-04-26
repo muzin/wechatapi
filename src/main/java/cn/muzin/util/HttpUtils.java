@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.*;
 
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.request.HttpRequestWithBody;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
@@ -258,6 +260,48 @@ public class HttpUtils {
             httpClient.getConnectionManager().shutdown(); //关闭连接,释放资源
         }
         return responseContent;
+    }
+
+    public static String sendHttpsPostFormDataRequest(String url, Map<String, Object> param){
+        Unirest.setTimeouts(0, 0);
+
+        try {
+            HttpRequestWithBody postRequest = Unirest.post(url);
+
+            Set<String> formDataKeys = param.keySet();
+
+            for (String key : formDataKeys) {
+
+                Object val = param.get(key);
+
+                if(val instanceof String){
+                    postRequest.field(key, val.toString());
+                }
+
+                if(val instanceof File){
+                    File file = (File) val;
+                    postRequest.field(key, file);
+                }
+
+                if(val instanceof InputStream){
+                    InputStream is = (InputStream) val;
+                    postRequest.field(key, is,
+                            new Date().getTime() + "" + ((int)Math.floor(Math.random() * 10000)));
+                }
+
+            }
+
+            com.mashape.unirest.http.HttpResponse<String> stringHttpResponse = postRequest.asString();
+
+            String resp = stringHttpResponse.getBody();
+
+            return resp;
+
+        }catch(Exception e){
+            e.printStackTrace();
+            return null;
+        }
+
     }
 
     public static String sendPostFileRequest(String url, File file){

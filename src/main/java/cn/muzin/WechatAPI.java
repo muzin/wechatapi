@@ -3009,9 +3009,9 @@ public class WechatAPI {
         String url = this.PREFIX + "material/add_material?access_token=" + accessToken + "&type=" + type;
 
         Map<String, Object> data = new HashMap<String, Object>();
-        data.put("media", new File(filepath));
+        data.put("file", new File(filepath));
 
-        String respStr = HttpUtils.sendPostFormDataRequest(url, data);
+        String respStr = HttpUtils.sendHttpsPostFormDataRequest(url, data);
         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
 
         return resp;
@@ -3723,12 +3723,12 @@ public class WechatAPI {
 
         if(filepath instanceof String) {
             String filepathStr = (String) filepath;
-            data.put("media", new File(filepathStr));
+            data.put("file", new File(filepathStr));
         }else if(filepath instanceof InputStream){
-            data.put("media", filepath);
+            data.put("file", filepath);
         }
 
-        String respStr = HttpUtils.sendPostFormDataRequest(apiUrl, data);
+        String respStr = HttpUtils.sendHttpsPostFormDataRequest(apiUrl, data);
         JsonObject resp = (JsonObject) jsonParser.parse(respStr);
 
         return resp;
