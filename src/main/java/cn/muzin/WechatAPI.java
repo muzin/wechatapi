@@ -195,8 +195,8 @@ public class WechatAPI {
         Long expireTime = new Date().getTime() + (data.get("expires_in").getAsLong() - 10) * 1000;
         AccessToken token = new AccessToken(data.get("access_token").getAsString(), expireTime);
 
-        tokenStorageResolver.saveToken(token);
         tokenStorageResolver.setAccessToken(token);
+        tokenStorageResolver.saveToken(token);
 
         return token;
     }
@@ -210,7 +210,7 @@ public class WechatAPI {
      * api.ensureAccessToken();
      * ```
      */
-    public AccessToken ensureAccessToken() {
+    public synchronized AccessToken ensureAccessToken() {
         // 调用用户传入的获取token的异步方法，获得token之后使用（并缓存它）。
         AccessToken token = tokenStorageResolver.getAccessToken();
         if (token != null && token.isValid()) {
