@@ -8,6 +8,8 @@ import cn.muzin.util.Base64Utils;
 import cn.muzin.util.CryptoUtils;
 import cn.muzin.util.HttpUtils;
 import com.google.gson.*;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import org.apache.http.HttpResponse;
 
 import java.io.File;
@@ -3782,16 +3784,25 @@ public class WechatAPI {
      * - `res`, HTTP响应对象
      * @param {String} mediaId 媒体文件的ID
      */
-    public HttpResponse getMedia (String mediaId) {
+    public InputStream getMedia (String mediaId) {
 
         AccessToken token = this.ensureAccessToken();
         String accessToken = token.getAccessToken();
 
         String url = this.PREFIX + "media/get?access_token=" + accessToken + "&media_id=" + mediaId;
 
-        HttpResponse httpResponse = HttpUtils.sendGetRequestReturnResponse(url);
+        com.mashape.unirest.http.HttpResponse<InputStream> inputStreamHttpResponse = null;
 
-        return httpResponse;
+        try {
+
+            inputStreamHttpResponse = Unirest.get(url).asBinary();
+            InputStream body = inputStreamHttpResponse.getBody();
+
+            return body;
+        } catch (UnirestException e) {
+            e.printStackTrace();
+            return null;
+        }
 
     }
     /**
